@@ -9,7 +9,7 @@ from app.config import settings
 from app.db.session import get_db
 from app.db.models import Commit, CIRun, RawWebhookEvent
 
-router = APIRouter(prefix="/webhooks", tags=["webhooks"])
+router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 
 
 def verify_signature(raw_body: bytes, signature_header: str | None) -> None:

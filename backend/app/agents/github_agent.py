@@ -1,0 +1,42 @@
+from __future__ import annotations
+
+from fastapi import HTTPException
+
+from app.agents.base import AgentRequest, AgentResult, RelayAgent
+from app.integrations.github import get_repository_overview
+
+
+class GitHubAgent(RelayAgent):
+    name = "GitHub Agent"
+    agent_type = "github"
+    description = "Handles GitHub repository metadata, branch, commit, and pull request questions."
+
+    def can_handle(self, request: AgentRequest) -> bool:
+        text = request.query_text.casefold()
+        return any(keyword in text for keyword in ("github", "branch", "commit", "pull request", "repository metadata"))
+
+    def handle(self, request: AgentRequest) -> AgentResult:
+        try:
+            overview = get_repository_overview()
+        except HTTPException as exc:
+            return AgentResult(agent_name=self.name, response_text=exc.detail)
+
+        response_lines = [
+            f"Repository: {overview.repository.full_name}",
+            f"Default branch: {overview.repository.default_branch}",
+        ]
+        if overview.repository.description:
+            response_lines.append(f"Description: {overview.repository.description}")
+        if overview.branches:
+            response_lines.append("Branches: " + ", ".join(overview.branches[:5]))
+        if overview.recent_commits:
+            response_lines.append(
+                "Recent commits: "
+                + "; ".join(f"{commit.sha[:7]} {commit.message}" for commit in overview.recent_commits[:3])
+            )
+        if overview.pull_requests:
+            response_lines.append(
+                "Pull requests: "
+                + "; ".join(f"#{pull.number} {pull.title} ({pull.state})" for pull in overview.pull_requests[:3])
+            )
+        return AgentResult(agent_name=self.name, response_text="\n".join(response_lines))

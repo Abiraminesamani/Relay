@@ -25,18 +25,24 @@ class GitHubRepoCoordinates:
 
 def get_repository_overview() -> GitHubRepositoryOverview:
     coordinates = _parse_repository_name()
-    with _client() as client:
-        repo_response = client.get(f"/repos/{coordinates.owner}/{coordinates.repo}")
-        _raise_for_status(repo_response)
+    try:
+        with _client() as client:
+            repo_response = client.get(f"/repos/{coordinates.owner}/{coordinates.repo}")
+            _raise_for_status(repo_response)
 
-        branches_response = client.get(f"/repos/{coordinates.owner}/{coordinates.repo}/branches?per_page=10")
-        _raise_for_status(branches_response)
+            branches_response = client.get(f"/repos/{coordinates.owner}/{coordinates.repo}/branches?per_page=10")
+            _raise_for_status(branches_response)
 
-        commits_response = client.get(f"/repos/{coordinates.owner}/{coordinates.repo}/commits?per_page=5")
-        _raise_for_status(commits_response)
+            commits_response = client.get(f"/repos/{coordinates.owner}/{coordinates.repo}/commits?per_page=5")
+            _raise_for_status(commits_response)
 
-        pulls_response = client.get(f"/repos/{coordinates.owner}/{coordinates.repo}/pulls?state=all&per_page=5")
-        _raise_for_status(pulls_response)
+            pulls_response = client.get(f"/repos/{coordinates.owner}/{coordinates.repo}/pulls?state=all&per_page=5")
+            _raise_for_status(pulls_response)
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Unable to connect to GitHub API ({coordinates.owner}/{coordinates.repo}): {exc}",
+        ) from exc
 
     repo_data = repo_response.json()
     return GitHubRepositoryOverview(

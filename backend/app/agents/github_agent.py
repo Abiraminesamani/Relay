@@ -19,7 +19,9 @@ class GitHubAgent(RelayAgent):
         try:
             overview = get_repository_overview()
         except HTTPException as exc:
-            return AgentResult(agent_name=self.name, response_text=exc.detail)
+            return AgentResult(agent_name=self.name, response_text=str(exc.detail))
+        except Exception as exc:
+            return AgentResult(agent_name=self.name, response_text=f"GitHub Agent encountered an error: {exc}")
 
         response_lines = [
             f"Repository: {overview.repository.full_name}",

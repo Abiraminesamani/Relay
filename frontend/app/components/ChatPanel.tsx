@@ -16,7 +16,7 @@ type ChatPanelProps = {
   prefillQuery?: string;
 };
 
-type AgentType = "auto" | "github" | "ci" | "code";
+type AgentType = "auto" | "github" | "ci" | "code" | "pr_review";
 
 const AGENT_CONFIGS: Record<
   string,
@@ -46,13 +46,22 @@ const AGENT_CONFIGS: Record<
     border: "border-cyan-500/30",
     desc: "AST chunking, Chroma vector retrieval & security audits",
   },
+  "PR Review Agent": {
+    label: "PR Review Agent",
+    icon: "🔍",
+    color: "text-rose-400",
+    badgeBg: "bg-rose-500/10 text-rose-300 border-rose-500/30",
+    border: "border-rose-500/30",
+    desc: "Inspects pull request diffs, code quality, and security risks",
+  },
 };
 
 const SUGGESTED_PROMPTS = [
-  { agent: "github", icon: "🐙", label: "Branches & PRs", query: "Show repository branches, latest commits and pull requests" },
+  { agent: "pr_review", icon: "🔍", label: "Automated PR Review", query: "Review the latest open pull request diff and suggest fixes" },
   { agent: "ci", icon: "⚙️", label: "CI Failure Diagnosis", query: "Why did the latest CI/CD workflow pipeline fail?" },
   { agent: "code", icon: "⚡", label: "Architecture Summary", query: "Explain the backend architecture and service layer in this repo" },
   { agent: "code", icon: "🛡️", label: "Security Audit", query: "Run a security scan on this repository for hardcoded secrets and flaws" },
+  { agent: "github", icon: "🐙", label: "Branches & PRs", query: "Show repository branches, latest commits and pull requests" },
 ];
 
 function formatTimestamp(): string {
@@ -161,7 +170,7 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
         </div>
 
         {/* Agent Routing Pills */}
-        <div className="flex items-center gap-1 rounded-xl bg-gray-900/90 p-1 border border-white/5 text-xs">
+        <div className="flex flex-wrap items-center gap-1 rounded-xl bg-gray-900/90 p-1 border border-white/5 text-xs">
           <button
             onClick={() => setSelectedAgent("auto")}
             className={`rounded-lg px-2.5 py-1 font-medium transition ${
@@ -172,6 +181,16 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
             title="Automatically routes based on intent"
           >
             Auto-Route
+          </button>
+          <button
+            onClick={() => setSelectedAgent("pr_review")}
+            className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+              selectedAgent === "pr_review"
+                ? "bg-rose-600 text-white shadow-sm"
+                : "text-gray-400 hover:text-rose-300"
+            }`}
+          >
+            🔍 PR Review
           </button>
           <button
             onClick={() => setSelectedAgent("github")}
@@ -224,7 +243,7 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
             </div>
             <h3 className="text-base font-semibold text-white">How can Relay assist your engineering workflow?</h3>
             <p className="mt-1 text-xs text-gray-400">
-              Select a specialized query below or type your question about code, workflows, or GitHub activity.
+              Select a specialized agent query below or type your question about code, PR reviews, workflows, or GitHub activity.
             </p>
 
             {/* Quick Prompts */}
@@ -301,6 +320,7 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
             <div className="flex space-x-1">
               <div className="h-2 w-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
               <div className="h-2 w-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+              <div className="h-2 w-2 bg-rose-500 rounded-full animate-bounce [animation-delay:-0.05s]"></div>
               <div className="h-2 w-2 bg-cyan-500 rounded-full animate-bounce"></div>
             </div>
             <span className="text-gray-400 text-xs font-medium">Relay multi-agent orchestrator is evaluating...</span>
@@ -322,7 +342,7 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
             className="flex-1 rounded-xl border border-white/10 bg-gray-900/90 px-4 py-2.5 text-xs md:text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
             placeholder={
               selectedAgent === "auto"
-                ? "Ask about your repository, GitHub metadata, CI logs, or code architecture..."
+                ? "Ask about PR reviews, repository code, CI logs, or GitHub metadata..."
                 : `Querying ${selectedAgent.toUpperCase()} Agent directly...`
             }
             value={input}

@@ -5,7 +5,7 @@ import hashlib
 import hmac
 import json
 import secrets
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 
@@ -29,7 +29,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_access_token(user_id: int, email: str) -> str:
-    expires_at = datetime.now(UTC) + timedelta(minutes=settings.auth_token_expiry_minutes)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.auth_token_expiry_minutes)
     payload = {"sub": user_id, "email": email, "exp": int(expires_at.timestamp())}
     encoded_payload = base64.urlsafe_b64encode(json.dumps(payload).encode("utf-8")).decode("utf-8")
     signature = hmac.new(
@@ -60,7 +60,7 @@ def decode_access_token(token: str) -> dict[str, int | str]:
         raise _credentials_error() from exc
 
     expires_at = int(payload.get("exp", 0))
-    if expires_at < int(datetime.now(UTC).timestamp()):
+    if expires_at < int(datetime.now(timezone.utc).timestamp()):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication token has expired")
 
     return payload

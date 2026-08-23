@@ -4,7 +4,13 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.agents.base import AgentRequest
-from app.agents.orchestrator import ci_agent, code_agent, github_agent, route_query
+from app.agents.orchestrator import (
+    ci_agent,
+    code_agent,
+    github_agent,
+    pr_review_agent,
+    route_query,
+)
 
 router = APIRouter(prefix="/chat", tags=["Chat Compatibility"])
 
@@ -29,6 +35,8 @@ async def chat(req: ChatRequest):
         result = ci_agent.handle(AgentRequest(query_text=req.message, repository_url=req.repository_url))
     elif req.agent_type == "code":
         result = code_agent.handle(AgentRequest(query_text=req.message, repository_url=req.repository_url))
+    elif req.agent_type == "pr_review":
+        result = pr_review_agent.handle(AgentRequest(query_text=req.message, repository_url=req.repository_url))
     else:
         result = route_query(req.message, repository_url=req.repository_url)
 

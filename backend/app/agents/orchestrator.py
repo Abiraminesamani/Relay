@@ -8,6 +8,7 @@ from app.agents.base import AgentRequest, AgentResult
 from app.agents.ci_correlation_agent import CICorrelationAgent
 from app.agents.code_rag_agent import CodeAgent
 from app.agents.github_agent import GitHubAgent
+from app.agents.pr_review_agent import PRReviewAgent
 
 
 class OrchestrationState(TypedDict):
@@ -19,10 +20,13 @@ class OrchestrationState(TypedDict):
 github_agent = GitHubAgent()
 ci_agent = CICorrelationAgent()
 code_agent = CodeAgent()
+pr_review_agent = PRReviewAgent()
 
 
 def _analyze_intent(state: OrchestrationState) -> OrchestrationState:
-    if ci_agent.can_handle(state["request"]):
+    if pr_review_agent.can_handle(state["request"]):
+        state["route"] = "pr_review"
+    elif ci_agent.can_handle(state["request"]):
         state["route"] = "ci"
     elif github_agent.can_handle(state["request"]):
         state["route"] = "github"
@@ -46,6 +50,11 @@ def _run_code_agent(state: OrchestrationState) -> OrchestrationState:
     return state
 
 
+def _run_pr_review_agent(state: OrchestrationState) -> OrchestrationState:
+    state["result"] = pr_review_agent.handle(state["request"])
+    return state
+
+
 def _route(state: OrchestrationState) -> str:
     return state["route"]
 
@@ -55,11 +64,22 @@ graph.add_node("analyze_intent", _analyze_intent)
 graph.add_node("github", _run_github_agent)
 graph.add_node("ci", _run_ci_agent)
 graph.add_node("code", _run_code_agent)
+graph.add_node("pr_review", _run_pr_review_agent)
 graph.add_edge(START, "analyze_intent")
-graph.add_conditional_edges("analyze_intent", _route, {"github": "github", "ci": "ci", "code": "code"})
+graph.add_conditional_edges(
+    "analyze_intent",
+    _route,
+    {
+        "github": "github",
+        "ci": "ci",
+        "code": "code",
+        "pr_review": "pr_review",
+    },
+)
 graph.add_edge("github", END)
 graph.add_edge("ci", END)
 graph.add_edge("code", END)
+graph.add_edge("pr_review", END)
 orchestrator = graph.compile()
 
 
@@ -68,7 +88,7 @@ def route_query(query_text: str, repository_url: str | None = None) -> AgentResu
     if not request.query_text:
         return AgentResult(
             agent_name="Code Agent",
-            response_text="Please ask a question about your repository, GitHub activity, or CI/CD pipeline.",
+            response_text="Please ask a question about your repository, GitHub activity, pull requests, or CI/CD pipeline.",
         )
 
     result = orchestrator.invoke({"request": request, "route": "code", "result": None})

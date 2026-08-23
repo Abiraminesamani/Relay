@@ -63,3 +63,18 @@ def delete_repository_endpoint(
     repository = get_repository_or_404(db, current_user, repository_id)
     delete_repository(db, repository)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{repository_id}/index", summary="Trigger RAG indexing for a repository")
+def index_repository_endpoint(
+    repository_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    import re
+    from app.ingestion.index_repo import index_repo
+
+    repository = get_repository_or_404(db, current_user, repository_id)
+    match = re.search(r"github\.com/([^/]+/[^/]+?)(?:\.git|/)?$", repository.repo_url)
+    repo_name = match.group(1) if match else repository.repo_url
+    return index_repo(repo=repo_name)

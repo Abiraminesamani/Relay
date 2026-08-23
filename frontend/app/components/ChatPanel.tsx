@@ -1,47 +1,118 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-type Message = { role: "user" | "assistant"; content: string; agentName?: string };
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+  agentName?: string;
+  timestamp?: string;
+};
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
 type ChatPanelProps = {
   token?: string;
+  prefillQuery?: string;
 };
 
-export default function ChatPanel({ token }: ChatPanelProps) {
+type AgentType = "auto" | "github" | "ci" | "code";
+
+const AGENT_CONFIGS: Record<
+  string,
+  { label: string; icon: string; color: string; badgeBg: string; border: string; desc: string }
+> = {
+  "GitHub Agent": {
+    label: "GitHub Agent",
+    icon: "🐙",
+    color: "text-purple-400",
+    badgeBg: "bg-purple-500/10 text-purple-300 border-purple-500/30",
+    border: "border-purple-500/30",
+    desc: "Repository metadata, branches, PRs & commit history",
+  },
+  "CI/CD Agent": {
+    label: "CI/CD Agent",
+    icon: "⚙️",
+    color: "text-amber-400",
+    badgeBg: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+    border: "border-amber-500/30",
+    desc: "Actions workflows, failure logs & root-cause correlation",
+  },
+  "Code Agent": {
+    label: "Code / RAG Agent",
+    icon: "⚡",
+    color: "text-cyan-400",
+    badgeBg: "bg-cyan-500/10 text-cyan-300 border-cyan-500/30",
+    border: "border-cyan-500/30",
+    desc: "AST chunking, Chroma vector retrieval & security audits",
+  },
+};
+
+const SUGGESTED_PROMPTS = [
+  { agent: "github", icon: "🐙", label: "Branches & PRs", query: "Show repository branches, latest commits and pull requests" },
+  { agent: "ci", icon: "⚙️", label: "CI Failure Diagnosis", query: "Why did the latest CI/CD workflow pipeline fail?" },
+  { agent: "code", icon: "⚡", label: "Architecture Summary", query: "Explain the backend architecture and service layer in this repo" },
+  { agent: "code", icon: "🛡️", label: "Security Audit", query: "Run a security scan on this repository for hardcoded secrets and flaws" },
+];
+
+function formatTimestamp(): string {
+  const d = new Date();
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(prefillQuery || "");
   const [loading, setLoading] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AgentType>("auto");
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  async function sendMessage() {
-    if (!input.trim() || loading) return;
+  useEffect(() => {
+    if (prefillQuery) {
+      setInput(prefillQuery);
+    }
+  }, [prefillQuery]);
 
-    const userQuery = input.trim();
-    const userMessage: Message = { role: "user", content: userQuery };
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  async function sendMessage(textToSend?: string) {
+    const queryText = (textToSend || input).trim();
+    if (!queryText || loading) return;
+
+    const userMessage: Message = {
+      role: "user",
+      content: queryText,
+      timestamp: formatTimestamp(),
+    };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
 
     try {
-      // If user is authenticated, record query via POST /queries first if desired or direct /chat
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
 
-        // Also record to authenticated query store
+        // Also record to query persistence
         fetch(`${API_BASE}/queries`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ query_text: userQuery }),
+          body: JSON.stringify({ query_text: queryText }),
         }).catch(() => {});
+      }
+
+      const payload: Record<string, any> = { message: queryText };
+      if (selectedAgent !== "auto") {
+        payload["agent_type"] = selectedAgent;
       }
 
       const res = await fetch(`${API_BASE}/chat`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ message: userQuery }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -49,8 +120,9 @@ export default function ChatPanel({ token }: ChatPanelProps) {
         ...prev,
         {
           role: "assistant",
-          content: data.reply || "No reply produced.",
-          agentName: data.agent_name,
+          content: data.reply || "No response produced.",
+          agentName: data.agent_name || "Code Agent",
+          timestamp: formatTimestamp(),
         },
       ]);
     } catch {
@@ -58,7 +130,9 @@ export default function ChatPanel({ token }: ChatPanelProps) {
         ...prev,
         {
           role: "assistant",
-          content: "Error reaching Relay backend. Is it running on port 8000?",
+          content: "⚠️ Error connecting to Relay backend. Verify that the FastAPI server is running on port 8000.",
+          agentName: "System",
+          timestamp: formatTimestamp(),
         },
       ]);
     } finally {
@@ -66,93 +140,203 @@ export default function ChatPanel({ token }: ChatPanelProps) {
     }
   }
 
+  function handleCopy(text: string, index: number) {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  }
+
   return (
-    <div className="flex h-[calc(100vh-140px)] flex-col rounded-xl border border-gray-800 bg-gray-900/40 p-4 shadow-xl">
-      {/* Header */}
-      <div className="mb-4 pb-3 border-b border-gray-800 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-white">AI Engineering Copilot</h2>
-          <p className="text-xs text-gray-400">Ask code questions, GitHub metadata, or investigate CI build failures</p>
+    <div className="flex h-[calc(100vh-130px)] flex-col rounded-2xl glass-panel shadow-2xl overflow-hidden">
+      {/* Top Header & Agent Selector */}
+      <div className="border-b border-white/5 bg-gray-950/60 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400 font-bold border border-blue-500/30 text-sm">
+            ✦
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-white tracking-wide">Relay Multi-Agent Copilot</h2>
+            <p className="text-[11px] text-gray-400">LangGraph Orchestrated Engineering Intelligence</p>
+          </div>
         </div>
+
+        {/* Agent Routing Pills */}
+        <div className="flex items-center gap-1 rounded-xl bg-gray-900/90 p-1 border border-white/5 text-xs">
+          <button
+            onClick={() => setSelectedAgent("auto")}
+            className={`rounded-lg px-2.5 py-1 font-medium transition ${
+              selectedAgent === "auto"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-gray-400 hover:text-gray-200"
+            }`}
+            title="Automatically routes based on intent"
+          >
+            Auto-Route
+          </button>
+          <button
+            onClick={() => setSelectedAgent("github")}
+            className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+              selectedAgent === "github"
+                ? "bg-purple-600 text-white shadow-sm"
+                : "text-gray-400 hover:text-purple-300"
+            }`}
+          >
+            🐙 GitHub
+          </button>
+          <button
+            onClick={() => setSelectedAgent("ci")}
+            className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+              selectedAgent === "ci"
+                ? "bg-amber-600 text-white shadow-sm"
+                : "text-gray-400 hover:text-amber-300"
+            }`}
+          >
+            ⚙️ CI/CD
+          </button>
+          <button
+            onClick={() => setSelectedAgent("code")}
+            className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+              selectedAgent === "code"
+                ? "bg-cyan-600 text-white shadow-sm"
+                : "text-gray-400 hover:text-cyan-300"
+            }`}
+          >
+            ⚡ Code/RAG
+          </button>
+        </div>
+
+        {messages.length > 0 && (
+          <button
+            onClick={() => setMessages([])}
+            className="text-xs text-gray-500 hover:text-gray-300 transition"
+          >
+            Clear Chat
+          </button>
+        )}
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 space-y-4 overflow-y-auto pr-2">
+      {/* Messages Stream */}
+      <div className="flex-1 space-y-4 overflow-y-auto p-5 pr-3">
         {messages.length === 0 && (
-          <div className="py-12 text-center">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600/10 text-blue-400 mb-3 border border-blue-500/20">
-              💬
+          <div className="py-10 text-center max-w-2xl mx-auto">
+            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600/20 to-purple-600/20 text-blue-400 mb-4 border border-white/10 shadow-lg glow-blue">
+              <span className="text-2xl">🤖</span>
             </div>
-            <p className="text-sm font-medium text-gray-300">How can Relay help you today?</p>
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-2 max-w-xl mx-auto">
-              <button
-                onClick={() => setInput("Explain the architecture of this repository")}
-                className="rounded-lg border border-gray-800 bg-gray-950 p-2.5 text-xs text-gray-400 hover:border-gray-700 hover:text-white transition text-left"
-              >
-                "Explain the architecture of this repository"
-              </button>
-              <button
-                onClick={() => setInput("Show recent commit history and branches")}
-                className="rounded-lg border border-gray-800 bg-gray-950 p-2.5 text-xs text-gray-400 hover:border-gray-700 hover:text-white transition text-left"
-              >
-                "Show recent commit history and branches"
-              </button>
-              <button
-                onClick={() => setInput("Why did the latest CI workflow pipeline fail?")}
-                className="rounded-lg border border-gray-800 bg-gray-950 p-2.5 text-xs text-gray-400 hover:border-gray-700 hover:text-white transition text-left"
-              >
-                "Why did the latest CI pipeline fail?"
-              </button>
+            <h3 className="text-base font-semibold text-white">How can Relay assist your engineering workflow?</h3>
+            <p className="mt-1 text-xs text-gray-400">
+              Select a specialized query below or type your question about code, workflows, or GitHub activity.
+            </p>
+
+            {/* Quick Prompts */}
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
+              {SUGGESTED_PROMPTS.map((p, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => sendMessage(p.query)}
+                  className="rounded-xl glass-card p-3 text-xs text-gray-300 hover:text-white transition group border border-white/5 hover:border-blue-500/30 hover:bg-gray-800/40"
+                >
+                  <div className="flex items-center gap-1.5 font-medium text-gray-200 mb-1">
+                    <span>{p.icon}</span>
+                    <span className="group-hover:text-blue-400 transition">{p.label}</span>
+                  </div>
+                  <div className="text-[11px] text-gray-400 line-clamp-1">{p.query}</div>
+                </button>
+              ))}
             </div>
           </div>
         )}
 
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}
-          >
-            {message.agentName && (
-              <span className="mb-1 text-[11px] font-medium text-blue-400 uppercase tracking-wider">
-                {message.agentName}
-              </span>
-            )}
+        {messages.map((message, index) => {
+          const config = message.agentName ? AGENT_CONFIGS[message.agentName] : null;
+
+          return (
             <div
-              className={`rounded-2xl px-4 py-3 text-sm leading-relaxed max-w-2xl whitespace-pre-wrap break-words ${
-                message.role === "user"
-                  ? "bg-blue-600 text-white rounded-br-none shadow-md shadow-blue-600/10"
-                  : "bg-gray-950 border border-gray-800 text-gray-200 rounded-bl-none"
-              }`}
+              key={index}
+              className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}
             >
-              {message.content}
+              {message.role === "assistant" && message.agentName && (
+                <div className="mb-1.5 flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
+                      config ? config.badgeBg : "bg-blue-500/10 text-blue-300 border-blue-500/30"
+                    }`}
+                  >
+                    <span>{config?.icon || "✦"}</span>
+                    {message.agentName}
+                  </span>
+                  {message.timestamp && (
+                    <span className="text-[10px] text-gray-500">{message.timestamp}</span>
+                  )}
+                </div>
+              )}
+
+              <div
+                className={`relative group rounded-2xl px-4 py-3 text-xs md:text-sm leading-relaxed max-w-3xl whitespace-pre-wrap break-words ${
+                  message.role === "user"
+                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-br-none shadow-md"
+                    : "bg-gray-950/90 border border-white/10 text-gray-200 rounded-bl-none shadow-sm"
+                }`}
+              >
+                {message.content}
+
+                {message.role === "assistant" && (
+                  <button
+                    onClick={() => handleCopy(message.content, index)}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition rounded px-1.5 py-0.5 bg-gray-800/80 text-[10px] text-gray-300 hover:text-white border border-gray-700"
+                  >
+                    {copiedIndex === index ? "Copied ✓" : "Copy"}
+                  </button>
+                )}
+              </div>
+
+              {message.role === "user" && message.timestamp && (
+                <span className="mt-1 text-[10px] text-gray-500 mr-1">{message.timestamp}</span>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {loading && (
-          <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-            <div className="h-2 w-2 rounded-full bg-blue-500 animate-ping" />
-            Relay agent is thinking...
+          <div className="flex items-center gap-2.5 text-xs text-blue-400 py-3 px-1">
+            <div className="flex space-x-1">
+              <div className="h-2 w-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+              <div className="h-2 w-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+              <div className="h-2 w-2 bg-cyan-500 rounded-full animate-bounce"></div>
+            </div>
+            <span className="text-gray-400 text-xs font-medium">Relay multi-agent orchestrator is evaluating...</span>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="mt-4 flex gap-2 pt-3 border-t border-gray-800">
-        <input
-          className="flex-1 rounded-xl border border-gray-800 bg-gray-950 px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
-          placeholder="Ask Relay about your code, GitHub, or CI/CD runs..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-        />
-        <button
-          onClick={sendMessage}
-          disabled={loading || !input.trim()}
-          className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 transition shadow-lg shadow-blue-600/20"
+      {/* Input Bar */}
+      <div className="border-t border-white/5 bg-gray-950/70 p-3.5">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            sendMessage();
+          }}
+          className="flex gap-2"
         >
-          Send
-        </button>
+          <input
+            className="flex-1 rounded-xl border border-white/10 bg-gray-900/90 px-4 py-2.5 text-xs md:text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+            placeholder={
+              selectedAgent === "auto"
+                ? "Ask about your repository, GitHub metadata, CI logs, or code architecture..."
+                : `Querying ${selectedAgent.toUpperCase()} Agent directly...`
+            }
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-xs md:text-sm font-semibold text-white hover:from-blue-500 hover:to-blue-600 active:from-blue-700 active:to-blue-800 disabled:opacity-50 transition shadow-lg shadow-blue-600/20 flex items-center gap-1.5"
+          >
+            <span>Send</span>
+            <span>➤</span>
+          </button>
+        </form>
       </div>
     </div>
   );

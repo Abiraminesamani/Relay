@@ -11,7 +11,9 @@ import chromadb
 import httpx
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
+from app.agents.base import AgentRequest, AgentResult, RelayAgent
 from app.config import settings
+from app.ingestion.index_repo import default_embedding_fn
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +104,20 @@ class SecurityFinding:
     path: str
 
 
+class CodeAgent(RelayAgent):
+    name = "Code Agent"
+    agent_type = "code"
+    description = "Answers repository code questions, architecture, functions, files, and security audits using Chroma RAG retrieval and live code inspection."
+
+    def can_handle(self, request: AgentRequest) -> bool:
+        # CodeAgent handles code/repository queries and acts as the deep code intelligence layer
+        return True
+
+    def handle(self, request: AgentRequest) -> AgentResult:
+        response_text = answer_code_question(request.query_text)
+        return AgentResult(agent_name=self.name, response_text=response_text)
+
+
 def answer_code_question(question: str) -> str:
     """Answer a repository question using indexed context or live GitHub fallback."""
     try:
@@ -153,18 +169,11 @@ def _retrieve_from_chroma(question: str) -> list[RetrievedChunk]:
         collections = client.list_collections()
         if not collections:
             return []
-
-        embeddings = OpenAIEmbeddings(
-            api_key=settings.openai_api_key,
-            model="text-embedding-3-small",
-        )
-        query_vector = embeddings.embed_query(question)
     except Exception:
-        logger.exception("Failed to initialize Chroma retrieval.")
+        logger.exception("Failed to connect to Chroma persistent store.")
         return []
 
     best_chunks: list[RetrievedChunk] = []
-    best_distance: float | None = None
 
     for collection_info in collections:
         collection_name = (
@@ -173,37 +182,33 @@ def _retrieve_from_chroma(question: str) -> list[RetrievedChunk]:
             else str(collection_info)
         )
         try:
-            collection = client.get_collection(collection_name)
+            collection = client.get_collection(
+                collection_name,
+                embedding_function=default_embedding_fn,
+            )
             result = collection.query(
-                query_embeddings=[query_vector],
+                query_texts=[question],
                 n_results=4,
                 include=["documents", "metadatas", "distances"],
             )
+
+            documents = result.get("documents", [[]])[0]
+            metadatas = result.get("metadatas", [[]])[0]
+            if documents:
+                for document, metadata in zip(documents, metadatas):
+                    if document:
+                        best_chunks.append(
+                            RetrievedChunk(
+                                path=str((metadata or {}).get("path", "unknown")),
+                                content=document,
+                                source="chroma",
+                            )
+                        )
+                if best_chunks:
+                    return best_chunks[:4]
         except Exception:
             logger.exception("Failed to query Chroma collection '%s'.", collection_name)
             continue
-
-        documents = result.get("documents", [[]])[0]
-        metadatas = result.get("metadatas", [[]])[0]
-        distances = result.get("distances", [[]])[0]
-
-        if not documents:
-            continue
-
-        first_distance = distances[0] if distances else None
-        if best_distance is not None and first_distance is not None and first_distance >= best_distance:
-            continue
-
-        best_chunks = [
-            RetrievedChunk(
-                path=str((metadata or {}).get("path", "unknown")),
-                content=document,
-                source="chroma",
-            )
-            for document, metadata in zip(documents, metadatas)
-            if document
-        ]
-        best_distance = first_distance
 
     return best_chunks
 

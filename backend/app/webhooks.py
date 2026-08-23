@@ -50,19 +50,34 @@ async def github_webhook(request: Request, db: Session = Depends(get_db)):
 
 
 def _handle_push(payload: dict, db: Session):
+    changed_files: set[str] = set()
+    latest_sha: str | None = payload.get("after")
+
     for commit_data in payload.get("commits", []):
         exists = db.query(Commit).filter_by(sha=commit_data["id"]).first()
-        if exists:
-            continue
-        db.add(
-            Commit(
-                sha=commit_data["id"],
-                message=commit_data.get("message", ""),
-                author=commit_data.get("author", {}).get("name", "unknown"),
+        if not exists:
+            db.add(
+                Commit(
+                    sha=commit_data["id"],
+                    message=commit_data.get("message", ""),
+                    author=commit_data.get("author", {}).get("name", "unknown"),
+                )
             )
-        )
+        for added_path in commit_data.get("added", []):
+            changed_files.add(added_path)
+        for modified_path in commit_data.get("modified", []):
+            changed_files.add(modified_path)
+
     db.commit()
-    # TODO (RAG step): trigger re-indexing of changed files for the new commit(s).
+
+    if changed_files and latest_sha:
+        try:
+            from app.ingestion.index_repo import index_files
+
+            repo_name = payload.get("repository", {}).get("full_name")
+            index_files(list(changed_files), latest_sha, repo=repo_name)
+        except Exception:
+            pass
 
 
 def _handle_workflow_run(payload: dict, db: Session):

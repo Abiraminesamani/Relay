@@ -31,3 +31,8 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Vector store and local databases
+chroma_store/
+*.sqlite3
+*.db

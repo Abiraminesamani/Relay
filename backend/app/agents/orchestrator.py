@@ -6,7 +6,7 @@ from langgraph.graph import END, START, StateGraph
 
 from app.agents.base import AgentRequest, AgentResult
 from app.agents.ci_correlation_agent import CICorrelationAgent
-from app.agents.code_rag_agent import answer_code_question
+from app.agents.code_rag_agent import CodeAgent
 from app.agents.github_agent import GitHubAgent
 
 
@@ -18,6 +18,7 @@ class OrchestrationState(TypedDict):
 
 github_agent = GitHubAgent()
 ci_agent = CICorrelationAgent()
+code_agent = CodeAgent()
 
 
 def _analyze_intent(state: OrchestrationState) -> OrchestrationState:
@@ -41,10 +42,7 @@ def _run_ci_agent(state: OrchestrationState) -> OrchestrationState:
 
 
 def _run_code_agent(state: OrchestrationState) -> OrchestrationState:
-    state["result"] = AgentResult(
-        agent_name="Code Agent",
-        response_text=answer_code_question(state["request"].query_text),
-    )
+    state["result"] = code_agent.handle(state["request"])
     return state
 
 

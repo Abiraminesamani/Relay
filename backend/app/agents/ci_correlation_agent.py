@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import httpx
 from langchain_openai import ChatOpenAI
 
+from app.agents.base import AgentRequest, AgentResult, RelayAgent
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,36 @@ class WorkflowFailureDetails:
     failed_steps: list[str]
     error_excerpt: str
     file_references: list[str]
+    commit_author: str | None = None
+    commit_message: str | None = None
+
+
+class CICorrelationAgent(RelayAgent):
+    name = "CI/CD Agent"
+    agent_type = "ci"
+    description = "Investigates GitHub Actions CI/CD workflow failures, correlates commits, and identifies root causes."
+
+    def can_handle(self, request: AgentRequest) -> bool:
+        text = request.query_text.casefold()
+        keywords = (
+            "build",
+            "workflow",
+            "pipeline",
+            "deploy",
+            "failed",
+            "failure",
+            "ci/cd",
+            "actions",
+            "test failure",
+            "run #",
+        )
+        if any(keyword in text for keyword in keywords):
+            return True
+        return _extract_run_id(request.query_text) is not None
+
+    def handle(self, request: AgentRequest) -> AgentResult:
+        response_text = investigate_failure(request.query_text)
+        return AgentResult(agent_name=self.name, response_text=response_text)
 
 
 def investigate_failure(question: str) -> str:
@@ -67,7 +98,8 @@ def investigate_failure(question: str) -> str:
             run = _fetch_target_run(client, owner, repo, run_id)
             jobs = _fetch_jobs_for_run(client, owner, repo, int(run["id"]))
             logs_text = _fetch_logs_for_run(client, owner, repo, int(run["id"]))
-            details = _build_failure_details(run, jobs, logs_text)
+            commit_meta = _fetch_commit_metadata(client, owner, repo, str(run.get("head_sha", "")))
+            details = _build_failure_details(run, jobs, logs_text, commit_meta)
 
         return _render_failure_report(question, details)
     except WorkflowNotFoundError:
@@ -192,7 +224,56 @@ def _fetch_logs_for_run(
     return "\n".join(log_parts)
 
 
-def _build_failure_details(run: dict, jobs: list[dict], logs_text: str) -> WorkflowFailureDetails:
+def _fetch_commit_metadata(
+    client: httpx.Client,
+    owner: str,
+    repo: str,
+    head_sha: str,
+) -> dict[str, str | None]:
+    """Retrieve commit details (author, message) from DB or GitHub API."""
+    if not head_sha:
+        return {"author": None, "message": None}
+
+    # Attempt local DB lookup first (e.g. from webhook data)
+    try:
+        from app.db.models import Commit
+        from app.db.session import SessionLocal
+
+        with SessionLocal() as db:
+            commit_record = db.query(Commit).filter_by(sha=head_sha).first()
+            if commit_record:
+                return {
+                    "author": commit_record.author,
+                    "message": commit_record.message,
+                }
+    except Exception:
+        # DB may not be connected during offline development; continue to API fallback
+        pass
+
+    # Fallback to GitHub API
+    try:
+        response = client.get(f"/repos/{owner}/{repo}/commits/{head_sha}")
+        if response.status_code == 200:
+            commit_data = response.json()
+            commit_info = commit_data.get("commit", {})
+            author = (
+                commit_info.get("author", {}).get("name")
+                or commit_data.get("author", {}).get("login")
+            )
+            message = commit_info.get("message", "").split("\n", 1)[0]
+            return {"author": author, "message": message}
+    except Exception:
+        pass
+
+    return {"author": None, "message": None}
+
+
+def _build_failure_details(
+    run: dict,
+    jobs: list[dict],
+    logs_text: str,
+    commit_meta: dict[str, str | None] | None = None,
+) -> WorkflowFailureDetails:
     failed_steps: list[str] = []
     for job in jobs:
         for step in job.get("steps", []):
@@ -219,6 +300,9 @@ def _build_failure_details(run: dict, jobs: list[dict], logs_text: str) -> Workf
         }
     )[:10]
 
+    author = commit_meta.get("author") if commit_meta else None
+    message = commit_meta.get("message") if commit_meta else None
+
     return WorkflowFailureDetails(
         run_id=int(run["id"]),
         workflow_name=str(run.get("name", "Unknown workflow")),
@@ -228,6 +312,8 @@ def _build_failure_details(run: dict, jobs: list[dict], logs_text: str) -> Workf
         failed_steps=failed_steps,
         error_excerpt=error_excerpt,
         file_references=file_references,
+        commit_author=author,
+        commit_message=message,
     )
 
 
@@ -235,19 +321,27 @@ def _render_failure_report(question: str, details: WorkflowFailureDetails) -> st
     if not settings.openai_api_key.strip():
         return _build_fallback_summary(details)
 
+    commit_context = ""
+    if details.commit_author or details.commit_message:
+        commit_context = (
+            f"Commit Author: {details.commit_author or 'Unknown'}\n"
+            f"Commit Message: {details.commit_message or 'Unknown'}\n"
+        )
+
     prompt = (
         "You are DevCopilot, a senior engineer diagnosing GitHub Actions failures.\n"
-        "Summarize the failure, explain the most likely root cause, and suggest concrete fixes.\n"
+        "Summarize the failure, explain the most likely root cause, correlate the commit, and suggest concrete fixes.\n"
         "Be specific and only use the provided workflow information.\n\n"
         f"User question:\n{question}\n\n"
         f"Workflow name: {details.workflow_name}\n"
         f"Run ID: {details.run_id}\n"
         f"Branch: {details.head_branch}\n"
         f"Commit SHA: {details.head_sha}\n"
+        f"{commit_context}"
         f"Failed steps: {', '.join(details.failed_steps)}\n"
         f"File references: {', '.join(details.file_references) or 'None'}\n"
         f"Error excerpt:\n{details.error_excerpt}\n\n"
-        "Structure the answer in short paragraphs covering summary, root cause, and suggested fixes."
+        "Structure the answer in short paragraphs covering summary, root cause, commit correlation, and suggested fixes."
     )
 
     try:
@@ -270,23 +364,22 @@ def _render_failure_report(question: str, details: WorkflowFailureDetails) -> st
 
 
 def _build_fallback_summary(details: WorkflowFailureDetails) -> str:
-    summary = (
-        f"Workflow '{details.workflow_name}' failed on branch '{details.head_branch}' "
-        f"for commit {details.head_sha[:7]}."
+    lines = [
+        f"Workflow '{details.workflow_name}' failed on branch '{details.head_branch}' for commit {details.head_sha[:7]}.",
+    ]
+    if details.commit_author or details.commit_message:
+        lines.append(
+            f"Commit details: {details.commit_message or 'N/A'} (by {details.commit_author or 'Unknown'})."
+        )
+    lines.append(
+        f"Failing step: {', '.join(details.failed_steps)}."
     )
-    root_cause = (
-        " The failing step was "
-        + ", ".join(details.failed_steps)
-        + ". The most relevant error excerpt was: "
-        + details.error_excerpt
-    )
+    lines.append(f"Error log excerpt:\n{details.error_excerpt}")
     if details.file_references:
-        fixes = " Review these referenced files first: " + ", ".join(details.file_references) + "."
-    else:
-        fixes = " Review the failing step configuration and the linked workflow logs for the exact command failure."
+        lines.append("Referenced files: " + ", ".join(details.file_references))
     if details.html_url:
-        fixes += f" Workflow URL: {details.html_url}"
-    return summary + root_cause + fixes
+        lines.append(f"Workflow URL: {details.html_url}")
+    return "\n\n".join(lines)
 
 
 def _build_workflow_not_found_message(owner: str, repo: str, run_id: int | None) -> str:

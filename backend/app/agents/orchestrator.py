@@ -5,7 +5,7 @@ from typing import TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from app.agents.base import AgentRequest, AgentResult
-from app.agents.ci_correlation_agent import investigate_failure
+from app.agents.ci_correlation_agent import CICorrelationAgent
 from app.agents.code_rag_agent import answer_code_question
 from app.agents.github_agent import GitHubAgent
 
@@ -17,14 +17,14 @@ class OrchestrationState(TypedDict):
 
 
 github_agent = GitHubAgent()
+ci_agent = CICorrelationAgent()
 
 
 def _analyze_intent(state: OrchestrationState) -> OrchestrationState:
-    text = state["request"].query_text.casefold()
-    if github_agent.can_handle(state["request"]):
-        state["route"] = "github"
-    elif any(keyword in text for keyword in ("build", "workflow", "pipeline", "deploy", "failed", "failure")):
+    if ci_agent.can_handle(state["request"]):
         state["route"] = "ci"
+    elif github_agent.can_handle(state["request"]):
+        state["route"] = "github"
     else:
         state["route"] = "code"
     return state
@@ -36,10 +36,7 @@ def _run_github_agent(state: OrchestrationState) -> OrchestrationState:
 
 
 def _run_ci_agent(state: OrchestrationState) -> OrchestrationState:
-    state["result"] = AgentResult(
-        agent_name="CI/CD Agent",
-        response_text=investigate_failure(state["request"].query_text),
-    )
+    state["result"] = ci_agent.handle(state["request"])
     return state
 
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.agents.base import AgentRequest
@@ -10,6 +12,7 @@ from app.agents.orchestrator import (
     github_agent,
     pr_review_agent,
     route_query,
+    stream_route_query,
 )
 
 router = APIRouter(prefix="/chat", tags=["Chat Compatibility"])
@@ -41,3 +44,26 @@ async def chat(req: ChatRequest):
         result = route_query(req.message, repository_url=req.repository_url)
 
     return ChatResponse(reply=result.response_text, agent_name=result.agent_name)
+
+
+@router.post("/stream")
+async def chat_stream(req: ChatRequest):
+    """Stream agent thought steps and token chunks in real-time via Server-Sent Events."""
+
+    async def event_generator():
+        async for event in stream_route_query(
+            query_text=req.message,
+            repository_url=req.repository_url,
+            agent_type=req.agent_type,
+        ):
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

@@ -7,6 +7,8 @@ type Message = {
   content: string;
   agentName?: string;
   timestamp?: string;
+  steps?: string[];
+  isStreaming?: boolean;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
@@ -75,6 +77,7 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
   const [loading, setLoading] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentType>("auto");
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [openAccordions, setOpenAccordions] = useState<Record<number, boolean>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,6 +90,13 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  function toggleAccordion(index: number) {
+    setOpenAccordions((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  }
+
   async function sendMessage(textToSend?: string) {
     const queryText = (textToSend || input).trim();
     if (!queryText || loading) return;
@@ -96,16 +106,28 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
       content: queryText,
       timestamp: formatTimestamp(),
     };
-    setMessages((prev) => [...prev, userMessage]);
+
+    const assistantPlaceholderIndex = messages.length + 1;
+    const initialAssistantMessage: Message = {
+      role: "assistant",
+      content: "",
+      agentName: selectedAgent === "auto" ? "Evaluating..." : selectedAgent.toUpperCase() + " Agent",
+      timestamp: formatTimestamp(),
+      steps: [],
+      isStreaming: true,
+    };
+
+    setMessages((prev) => [...prev, userMessage, initialAssistantMessage]);
     setInput("");
     setLoading(true);
+    setOpenAccordions((prev) => ({ ...prev, [assistantPlaceholderIndex]: true }));
 
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
 
-        // Also record to query persistence
+        // Asynchronously record to user query history
         fetch(`${API_BASE}/queries`, {
           method: "POST",
           headers,
@@ -118,32 +140,117 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
         payload["agent_type"] = selectedAgent;
       }
 
-      const res = await fetch(`${API_BASE}/chat`, {
+      const response = await fetch(`${API_BASE}/chat/stream`, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.reply || "No response produced.",
-          agentName: data.agent_name || "Code Agent",
-          timestamp: formatTimestamp(),
-        },
-      ]);
+      if (!response.ok || !response.body) {
+        throw new Error("Streaming endpoint unavailable");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      let accumulatedContent = "";
+      let accumulatedSteps: string[] = [];
+      let finalAgentName = "Code Agent";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+
+          try {
+            const eventData = JSON.parse(trimmed.replace(/^data:\s*/, ""));
+
+            if (eventData.type === "step") {
+              accumulatedSteps = [...accumulatedSteps, eventData.step];
+              setMessages((prev) => {
+                const next = [...prev];
+                const last = next[next.length - 1];
+                if (last && last.role === "assistant") {
+                  next[next.length - 1] = {
+                    ...last,
+                    steps: accumulatedSteps,
+                  };
+                }
+                return next;
+              });
+            } else if (eventData.type === "token") {
+              accumulatedContent += eventData.content;
+              setMessages((prev) => {
+                const next = [...prev];
+                const last = next[next.length - 1];
+                if (last && last.role === "assistant") {
+                  next[next.length - 1] = {
+                    ...last,
+                    content: accumulatedContent,
+                    isStreaming: true,
+                  };
+                }
+                return next;
+              });
+            } else if (eventData.type === "done") {
+              finalAgentName = eventData.agent_name;
+              accumulatedContent = eventData.reply || accumulatedContent;
+              setMessages((prev) => {
+                const next = [...prev];
+                const last = next[next.length - 1];
+                if (last && last.role === "assistant") {
+                  next[next.length - 1] = {
+                    ...last,
+                    content: accumulatedContent,
+                    agentName: finalAgentName,
+                    isStreaming: false,
+                  };
+                }
+                return next;
+              });
+            } else if (eventData.type === "error") {
+              accumulatedContent += `\n\n⚠️ ${eventData.message}`;
+            }
+          } catch {
+            // Ignore partial SSE chunk parses
+          }
+        }
+      }
+
+      setMessages((prev) => {
+        const next = [...prev];
+        const last = next[next.length - 1];
+        if (last && last.role === "assistant") {
+          next[next.length - 1] = {
+            ...last,
+            content: accumulatedContent || "No response produced.",
+            agentName: finalAgentName,
+            isStreaming: false,
+          };
+        }
+        return next;
+      });
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "⚠️ Error connecting to Relay backend. Verify that the FastAPI server is running on port 8000.",
-          agentName: "System",
-          timestamp: formatTimestamp(),
-        },
-      ]);
+      setMessages((prev) => {
+        const next = [...prev];
+        const last = next[next.length - 1];
+        if (last && last.role === "assistant") {
+          next[next.length - 1] = {
+            ...last,
+            content: "⚠️ Error connecting to Relay streaming backend. Please check server logs.",
+            agentName: "System",
+            isStreaming: false,
+          };
+        }
+        return next;
+      });
     } finally {
       setLoading(false);
     }
@@ -165,7 +272,7 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-white tracking-wide">Relay Multi-Agent Copilot</h2>
-            <p className="text-[11px] text-gray-400">LangGraph Orchestrated Engineering Intelligence</p>
+            <p className="text-[11px] text-gray-400">Live SSE Streaming & Visual Reasoning</p>
           </div>
         </div>
 
@@ -243,7 +350,7 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
             </div>
             <h3 className="text-base font-semibold text-white">How can Relay assist your engineering workflow?</h3>
             <p className="mt-1 text-xs text-gray-400">
-              Select a specialized agent query below or type your question about code, PR reviews, workflows, or GitHub activity.
+              Select a specialized query below or type your question about code, PR reviews, CI workflows, or GitHub activity.
             </p>
 
             {/* Quick Prompts */}
@@ -267,6 +374,7 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
 
         {messages.map((message, index) => {
           const config = message.agentName ? AGENT_CONFIGS[message.agentName] : null;
+          const isAccordionOpen = openAccordions[index] ?? true;
 
           return (
             <div
@@ -289,6 +397,39 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
                 </div>
               )}
 
+              {/* Visual Reasoning Steps Accordion */}
+              {message.role === "assistant" && message.steps && message.steps.length > 0 && (
+                <div className="mb-2.5 w-full max-w-2xl rounded-xl border border-white/10 bg-gray-950/70 p-2.5 text-xs text-gray-300 shadow-sm backdrop-blur-md">
+                  <button
+                    onClick={() => toggleAccordion(index)}
+                    className="flex items-center justify-between w-full text-[11px] font-medium text-gray-300 hover:text-white transition"
+                  >
+                    <div className="flex items-center gap-2">
+                      {message.isStreaming ? (
+                        <div className="h-2 w-2 rounded-full bg-blue-500 animate-ping" />
+                      ) : (
+                        <span className="text-emerald-400 text-xs">✓</span>
+                      )}
+                      <span>
+                        Reasoning & Execution ({message.steps.length} {message.steps.length === 1 ? "step" : "steps"})
+                      </span>
+                    </div>
+                    <span className="text-gray-500 text-[10px]">{isAccordionOpen ? "Hide ▲" : "Show ▼"}</span>
+                  </button>
+
+                  {isAccordionOpen && (
+                    <div className="mt-2 space-y-1 border-t border-white/5 pt-2 pl-2 text-[11px] font-mono text-gray-400">
+                      {message.steps.map((step, sIdx) => (
+                        <div key={sIdx} className="flex items-start gap-1.5">
+                          <span className="text-blue-400 select-none">›</span>
+                          <span className="leading-tight">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div
                 className={`relative group rounded-2xl px-4 py-3 text-xs md:text-sm leading-relaxed max-w-3xl whitespace-pre-wrap break-words ${
                   message.role === "user"
@@ -296,9 +437,11 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
                     : "bg-gray-950/90 border border-white/10 text-gray-200 rounded-bl-none shadow-sm"
                 }`}
               >
-                {message.content}
+                {message.content || (message.isStreaming && (
+                  <span className="text-gray-500 italic">Thinking and synthesizing response...</span>
+                ))}
 
-                {message.role === "assistant" && (
+                {message.role === "assistant" && message.content && (
                   <button
                     onClick={() => handleCopy(message.content, index)}
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition rounded px-1.5 py-0.5 bg-gray-800/80 text-[10px] text-gray-300 hover:text-white border border-gray-700"
@@ -316,14 +459,14 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
         })}
 
         {loading && (
-          <div className="flex items-center gap-2.5 text-xs text-blue-400 py-3 px-1">
+          <div className="flex items-center gap-2.5 text-xs text-blue-400 py-2 px-1">
             <div className="flex space-x-1">
               <div className="h-2 w-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
               <div className="h-2 w-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
               <div className="h-2 w-2 bg-rose-500 rounded-full animate-bounce [animation-delay:-0.05s]"></div>
               <div className="h-2 w-2 bg-cyan-500 rounded-full animate-bounce"></div>
             </div>
-            <span className="text-gray-400 text-xs font-medium">Relay multi-agent orchestrator is evaluating...</span>
+            <span className="text-gray-400 text-xs font-medium">Relay streaming live evaluation...</span>
           </div>
         )}
         <div ref={messagesEndRef} />

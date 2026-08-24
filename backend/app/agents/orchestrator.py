@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TypedDict
+import asyncio
+from typing import AsyncGenerator, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
@@ -93,3 +94,68 @@ def route_query(query_text: str, repository_url: str | None = None) -> AgentResu
 
     result = orchestrator.invoke({"request": request, "route": "code", "result": None})
     return result["result"] or AgentResult(agent_name="Code Agent", response_text="No response was produced.")
+
+
+async def stream_route_query(
+    query_text: str,
+    repository_url: str | None = None,
+    agent_type: str | None = None,
+) -> AsyncGenerator[dict, None]:
+    """Stream thought steps and response tokens for a user query via Server-Sent Events."""
+    cleaned_query = query_text.strip()
+    if not cleaned_query:
+        yield {"type": "error", "message": "Query text cannot be empty."}
+        return
+
+    request = AgentRequest(query_text=cleaned_query, repository_url=repository_url)
+
+    yield {"type": "step", "step": "🧠 Analyzing query semantics and user intent..."}
+    await asyncio.sleep(0.05)
+
+    # Determine target agent
+    if agent_type == "pr_review" or (not agent_type and pr_review_agent.can_handle(request)):
+        target_agent = pr_review_agent
+        yield {"type": "step", "step": "🔍 Directing to PR Review Agent for code diff inspection"}
+        yield {"type": "step", "step": "📄 Fetching pull request files and patches via GitHub API..."}
+    elif agent_type == "ci" or (not agent_type and ci_agent.can_handle(request)):
+        target_agent = ci_agent
+        yield {"type": "step", "step": "⚙️ Directing to CI/CD Agent for Actions failure analysis"}
+        yield {"type": "step", "step": "📊 Fetching workflow runs, job logs, and failure traces..."}
+    elif agent_type == "github" or (not agent_type and github_agent.can_handle(request)):
+        target_agent = github_agent
+        yield {"type": "step", "step": "🐙 Directing to GitHub Agent for metadata & branch lookup"}
+        yield {"type": "step", "step": "🌐 Fetching repository overview, commits, and pull requests..."}
+    else:
+        target_agent = code_agent
+        yield {"type": "step", "step": "⚡ Directing to Code / RAG Agent for semantic analysis"}
+        yield {"type": "step", "step": "📂 Querying ChromaDB vector collections and code AST..."}
+
+    await asyncio.sleep(0.05)
+
+    # Execute agent in background thread pool to avoid blocking the event loop
+    try:
+        agent_result: AgentResult = await asyncio.to_thread(target_agent.handle, request)
+    except Exception as exc:
+        yield {"type": "error", "message": f"Agent execution encountered an error: {exc}"}
+        return
+
+    yield {"type": "step", "step": f"✨ Synthesizing grounded response ({agent_result.agent_name})"}
+    await asyncio.sleep(0.05)
+
+    # Stream the tokens in chunks
+    full_text = agent_result.response_text or ""
+    words = full_text.split(" ")
+    chunk_size = 4
+
+    for i in range(0, len(words), chunk_size):
+        token_chunk = " ".join(words[i : i + chunk_size])
+        if i + chunk_size < len(words):
+            token_chunk += " "
+        yield {"type": "token", "content": token_chunk}
+        await asyncio.sleep(0.015)
+
+    yield {
+        "type": "done",
+        "agent_name": agent_result.agent_name,
+        "reply": full_text,
+    }

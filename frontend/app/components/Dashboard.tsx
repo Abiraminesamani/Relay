@@ -15,8 +15,10 @@ type DashboardProps = {
 export default function Dashboard({ token, user, onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<"chat" | "repos" | "queries">("chat");
   const [prefillQuery, setPrefillQuery] = useState<string>("");
+  const [selectedRepoUrl, setSelectedRepoUrl] = useState<string>("");
 
-  function handleSelectRepoForChat(repoName: string) {
+  function handleSelectRepoForChat(repoName: string, repoUrl: string) {
+    setSelectedRepoUrl(repoUrl);
     setPrefillQuery(`Explain the structure and main components of repository '${repoName}'`);
     setActiveTab("chat");
   }
@@ -94,7 +96,14 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
 
       {/* Main Content View */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6">
-        {activeTab === "chat" && <ChatPanel token={token} prefillQuery={prefillQuery} />}
+        {activeTab === "chat" && (
+          <ChatPanel
+            token={token}
+            prefillQuery={prefillQuery}
+            selectedRepoUrl={selectedRepoUrl}
+            onSelectRepoUrl={setSelectedRepoUrl}
+          />
+        )}
         {activeTab === "repos" && (
           <RepositoryManager token={token} onSelectRepoForChat={handleSelectRepoForChat} />
         )}

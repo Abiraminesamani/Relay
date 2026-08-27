@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
-from langchain_openai import ChatOpenAI
 
 from app.agents.base import AgentRequest, AgentResult, RelayAgent
 from app.config import settings
+from app.core.llm import get_chat_llm
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class PullRequestNotFoundError(RuntimeError):
 
 
 class OpenAIServiceError(RuntimeError):
-    """Raised when the OpenAI call fails."""
+    """Raised when the LLM call fails."""
 
 
 @dataclass(slots=True)
@@ -76,28 +76,40 @@ class PRReviewAgent(RelayAgent):
 
     def can_handle(self, request: AgentRequest) -> bool:
         text = request.query_text.casefold()
-        keywords = (
-            "pr review",
-            "review pr",
-            "pull request review",
-            "review pull request",
-            "diff review",
-            "code review",
-            "review diff",
-            "inspect pr",
-            "check pr",
-            "audit pr",
+        has_review_action = any(
+            action in text
+            for action in ("review", "audit", "inspect", "check", "diff", "suggest fixes", "suggest", "fixes")
         )
-        if any(keyword in text for keyword in keywords):
+        has_pr_target = any(
+            target in text
+            for target in ("pr", "pull request", "pull requests", "diff", "patch")
+        )
+        if has_review_action and has_pr_target:
             return True
-        return PR_NUMBER_PATTERN.search(request.query_text) is not None and "review" in text
+        if any(
+            keyword in text
+            for keyword in (
+                "pr review",
+                "review pr",
+                "pull request review",
+                "review pull request",
+                "diff review",
+                "code review",
+                "review diff",
+                "inspect pr",
+                "check pr",
+                "audit pr",
+            )
+        ):
+            return True
+        return PR_NUMBER_PATTERN.search(request.query_text) is not None
 
     def handle(self, request: AgentRequest) -> AgentResult:
-        response_text = review_pull_request(request.query_text)
+        response_text = review_pull_request(request.query_text, repository_url=request.repository_url)
         return AgentResult(agent_name=self.name, response_text=response_text)
 
 
-def review_pull_request(question: str) -> str:
+def review_pull_request(question: str, repository_url: str | None = None) -> str:
     """Analyze target pull request diff and generate a structured review."""
     owner = ""
     repo = ""
@@ -105,7 +117,7 @@ def review_pull_request(question: str) -> str:
 
     try:
         _validate_required_settings()
-        owner, repo = _parse_repo_name()
+        owner, repo = _parse_repo_name(repository_url)
 
         with _github_client() as client:
             pr_number = extract_pr_number(question)
@@ -117,11 +129,11 @@ def review_pull_request(question: str) -> str:
     except PullRequestNotFoundError:
         return _build_pr_not_found_message(owner, repo, pr_number)
     except GitHubRepositoryNotFoundError:
-        return "Repository not found. Check GITHUB_REPO and confirm the repository exists."
+        return f"Repository '{owner}/{repo}' not found. Please confirm the repository URL exists on GitHub."
     except GitHubAuthError:
         return "GitHub authentication failed. Check GITHUB_TOKEN and confirm it can read pull requests."
     except OpenAIServiceError:
-        return "OpenAI API failed while analyzing the PR diff. Please try again in a moment."
+        return "LLM API failed while analyzing the PR diff. Please try again in a moment."
     except Exception:
         logger.exception("Unexpected error while reviewing pull request.")
         return (
@@ -141,18 +153,21 @@ def extract_pr_number(question: str) -> int | None:
 
 
 def _validate_required_settings() -> None:
-    if not settings.github_repo.strip():
-        raise GitHubRepositoryNotFoundError("Missing GITHUB_REPO configuration.")
     if not settings.github_token.strip():
         raise GitHubAuthError("Missing GITHUB_TOKEN configuration.")
 
 
-def _parse_repo_name() -> tuple[str, str]:
-    if "/" not in settings.github_repo:
-        raise GitHubRepositoryNotFoundError("GITHUB_REPO must use the 'owner/repo' format.")
-    owner, repo = settings.github_repo.split("/", 1)
+def _parse_repo_name(repo_url: str | None = None) -> tuple[str, str]:
+    target = (repo_url or settings.github_repo).strip()
+    target = re.sub(r"^https?://github\.com/", "", target)
+    target = re.sub(r"^git@github\.com:", "", target)
+    target = re.sub(r"\.git$", "", target).strip("/")
+
+    if "/" not in target:
+        raise GitHubRepositoryNotFoundError(f"Invalid repository '{target}'. Expected 'owner/repo' format.")
+    owner, repo = target.split("/", 1)
     if not owner or not repo:
-        raise GitHubRepositoryNotFoundError("GITHUB_REPO must use the 'owner/repo' format.")
+        raise GitHubRepositoryNotFoundError(f"Invalid repository '{target}'. Expected 'owner/repo' format.")
     return owner, repo
 
 
@@ -190,14 +205,14 @@ def _fetch_target_pr(
     if open_prs and len(open_prs) > 0:
         return open_prs[0]
 
-    # Fallback to any recent PR
+    # Fallback to any recent PR (open or closed)
     fallback_resp = client.get(f"/repos/{owner}/{repo}/pulls?state=all&per_page=5")
     _raise_for_github_error(fallback_resp)
     all_prs = fallback_resp.json()
     if all_prs and len(all_prs) > 0:
         return all_prs[0]
 
-    raise PullRequestNotFoundError("No pull requests found in this repository.")
+    raise PullRequestNotFoundError(f"No pull requests found in '{owner}/{repo}'.")
 
 
 def _fetch_pr_files(
@@ -318,14 +333,10 @@ def _render_review_report(question: str, details: PRReviewDetails) -> str:
     )
 
     try:
-        llm = ChatOpenAI(
-            api_key=settings.openai_api_key,
-            model="gpt-4o-mini",
-            temperature=0.1,
-        )
+        llm = get_chat_llm(model="openai/gpt-4o-mini", temperature=0.1)
         response = llm.invoke(prompt)
     except Exception:
-        logger.exception("OpenAI call failed while reviewing PR.")
+        logger.exception("LLM call failed while reviewing PR.")
         return _build_fallback_review(details)
 
     content = getattr(response, "content", "")

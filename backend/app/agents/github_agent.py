@@ -13,11 +13,29 @@ class GitHubAgent(RelayAgent):
 
     def can_handle(self, request: AgentRequest) -> bool:
         text = request.query_text.casefold()
-        return any(keyword in text for keyword in ("github", "branch", "commit", "pull request", "repository metadata"))
+        # Defer code review and diff inspection queries to PRReviewAgent
+        if any(action in text for action in ("review", "diff", "suggest fixes", "audit", "inspect")) and any(
+            target in text for target in ("pr", "pull request", "diff", "patch")
+        ):
+            return False
+        return any(
+            keyword in text
+            for keyword in (
+                "github",
+                "branch",
+                "branches",
+                "commit",
+                "commits",
+                "pull request",
+                "pull requests",
+                "repository metadata",
+                "overview",
+            )
+        )
 
     def handle(self, request: AgentRequest) -> AgentResult:
         try:
-            overview = get_repository_overview()
+            overview = get_repository_overview(repo_target=request.repository_url)
         except HTTPException as exc:
             return AgentResult(agent_name=self.name, response_text=str(exc.detail))
         except Exception as exc:

@@ -14,7 +14,7 @@ export type Repository = {
 
 type RepositoryManagerProps = {
   token: string;
-  onSelectRepoForChat?: (repoName: string) => void;
+  onSelectRepoForChat?: (repoName: string, repoUrl: string) => void;
 };
 
 export default function RepositoryManager({ token, onSelectRepoForChat }: RepositoryManagerProps) {
@@ -265,7 +265,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
 
                     {onSelectRepoForChat && (
                       <button
-                        onClick={() => onSelectRepoForChat(repo.name)}
+                        onClick={() => onSelectRepoForChat(repo.name, repo.repo_url)}
                         className="rounded-xl border border-white/10 bg-gray-900/60 px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-800 hover:text-white transition"
                       >
                         💬 Chat

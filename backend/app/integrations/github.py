@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 import httpx
 from fastapi import HTTPException, status
@@ -13,7 +14,6 @@ from app.schemas.github import (
     GitHubRepositoryOverview,
 )
 
-
 GITHUB_API_URL = "https://api.github.com"
 
 
@@ -23,8 +23,30 @@ class GitHubRepoCoordinates:
     repo: str
 
 
-def get_repository_overview() -> GitHubRepositoryOverview:
-    coordinates = _parse_repository_name()
+def parse_repo_coordinates(repo_input: str | None = None) -> GitHubRepoCoordinates:
+    target = (repo_input or settings.github_repo).strip()
+    # Normalize URLs like https://github.com/owner/repo or owner/repo
+    target = re.sub(r"^https?://github\.com/", "", target)
+    target = re.sub(r"^git@github\.com:", "", target)
+    target = re.sub(r"\.git$", "", target).strip("/")
+
+    if "/" not in target:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Invalid GitHub repository '{target}'. Expected 'owner/repo' format or GitHub URL.",
+        )
+
+    owner, repo = target.split("/", 1)
+    if not owner or not repo:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Invalid GitHub repository '{target}'. Expected 'owner/repo' format.",
+        )
+    return GitHubRepoCoordinates(owner=owner, repo=repo)
+
+
+def get_repository_overview(repo_target: str | None = None) -> GitHubRepositoryOverview:
+    coordinates = parse_repo_coordinates(repo_target)
     try:
         with _client() as client:
             repo_response = client.get(f"/repos/{coordinates.owner}/{coordinates.repo}")
@@ -91,22 +113,6 @@ def _client() -> httpx.Client:
         timeout=20.0,
         follow_redirects=True,
     )
-
-
-def _parse_repository_name() -> GitHubRepoCoordinates:
-    if "/" not in settings.github_repo:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="GitHub integration is not configured. Set GITHUB_REPO as owner/repo.",
-        )
-
-    owner, repo = settings.github_repo.split("/", 1)
-    if not owner or not repo:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="GitHub integration is not configured. Set GITHUB_REPO as owner/repo.",
-        )
-    return GitHubRepoCoordinates(owner=owner, repo=repo)
 
 
 def _raise_for_status(response: httpx.Response) -> None:

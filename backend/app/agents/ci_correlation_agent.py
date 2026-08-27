@@ -7,10 +7,13 @@ import zipfile
 from dataclasses import dataclass
 
 import httpx
-from langchain_openai import ChatOpenAI
+from sqlalchemy.orm import Session
 
 from app.agents.base import AgentRequest, AgentResult, RelayAgent
 from app.config import settings
+from app.core.llm import get_chat_llm
+from app.db.models import Commit
+from app.db.session import SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -79,11 +82,11 @@ class CICorrelationAgent(RelayAgent):
         return _extract_run_id(request.query_text) is not None
 
     def handle(self, request: AgentRequest) -> AgentResult:
-        response_text = investigate_failure(request.query_text)
+        response_text = investigate_failure(request.query_text, repository_url=request.repository_url)
         return AgentResult(agent_name=self.name, response_text=response_text)
 
 
-def investigate_failure(question: str) -> str:
+def investigate_failure(question: str, repository_url: str | None = None) -> str:
     """Inspect the latest relevant GitHub Actions failure and explain it."""
     owner = ""
     repo = ""
@@ -91,7 +94,7 @@ def investigate_failure(question: str) -> str:
 
     try:
         _validate_required_settings()
-        owner, repo = _parse_repo_name()
+        owner, repo = _parse_repo_name(repository_url)
 
         with _github_client() as client:
             run_id = _extract_run_id(question)
@@ -105,11 +108,11 @@ def investigate_failure(question: str) -> str:
     except WorkflowNotFoundError:
         return _build_workflow_not_found_message(owner, repo, run_id)
     except GitHubRepositoryNotFoundError:
-        return "Repository not found. Check GITHUB_REPO and confirm the repository exists."
+        return f"Repository '{owner}/{repo}' not found. Check repository configuration."
     except GitHubAuthError:
         return "GitHub authentication failed. Check GITHUB_TOKEN and confirm it can access Actions data."
     except OpenAIServiceError:
-        return "OpenAI API failed while analyzing the workflow failure. Please try again in a moment."
+        return "LLM API failed while analyzing the workflow failure. Please try again in a moment."
     except Exception:
         logger.exception("Unexpected error while investigating a CI failure.")
         return (
@@ -119,18 +122,22 @@ def investigate_failure(question: str) -> str:
 
 
 def _validate_required_settings() -> None:
-    if not settings.github_repo.strip():
-        raise GitHubRepositoryNotFoundError("Missing GITHUB_REPO configuration.")
     if not settings.github_token.strip():
         raise GitHubAuthError("Missing GITHUB_TOKEN configuration.")
 
 
-def _parse_repo_name() -> tuple[str, str]:
-    if "/" not in settings.github_repo:
-        raise GitHubRepositoryNotFoundError("GITHUB_REPO must use the 'owner/repo' format.")
-    owner, repo = settings.github_repo.split("/", 1)
+def _parse_repo_name(repo_url: str | None = None) -> tuple[str, str]:
+    import re
+    target = (repo_url or settings.github_repo).strip()
+    target = re.sub(r"^https?://github\.com/", "", target)
+    target = re.sub(r"^git@github\.com:", "", target)
+    target = re.sub(r"\.git$", "", target).strip("/")
+
+    if "/" not in target:
+        raise GitHubRepositoryNotFoundError(f"Invalid repository '{target}'. Expected 'owner/repo' format.")
+    owner, repo = target.split("/", 1)
     if not owner or not repo:
-        raise GitHubRepositoryNotFoundError("GITHUB_REPO must use the 'owner/repo' format.")
+        raise GitHubRepositoryNotFoundError(f"Invalid repository '{target}'. Expected 'owner/repo' format.")
     return owner, repo
 
 
@@ -345,11 +352,7 @@ def _render_failure_report(question: str, details: WorkflowFailureDetails) -> st
     )
 
     try:
-        llm = ChatOpenAI(
-            api_key=settings.openai_api_key,
-            model="gpt-4o-mini",
-            temperature=0.1,
-        )
+        llm = get_chat_llm(model="openai/gpt-4o-mini", temperature=0.1)
         response = llm.invoke(prompt)
     except Exception as exc:
         logger.exception("OpenAI call failed while analyzing workflow failure.")

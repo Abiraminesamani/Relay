@@ -9,11 +9,11 @@ from typing import Any
 
 import chromadb
 import httpx
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from app.agents.base import AgentRequest, AgentResult, RelayAgent
 from app.config import settings
-from app.ingestion.index_repo import default_embedding_fn
+from app.core.llm import get_chat_llm
+from app.ingestion.index_repo import default_embedding_fn, sanitize_collection_name
 
 logger = logging.getLogger(__name__)
 
@@ -114,29 +114,29 @@ class CodeAgent(RelayAgent):
         return True
 
     def handle(self, request: AgentRequest) -> AgentResult:
-        response_text = answer_code_question(request.query_text)
+        response_text = answer_code_question(request.query_text, repository_url=request.repository_url)
         return AgentResult(agent_name=self.name, response_text=response_text)
 
 
-def answer_code_question(question: str) -> str:
+def answer_code_question(question: str, repository_url: str | None = None) -> str:
     """Answer a repository question using indexed context or live GitHub fallback."""
     try:
         _validate_required_settings()
         if _is_repository_list_question(question):
             return _build_repository_list_answer()
-        chunks = _retrieve_relevant_chunks(question)
+        chunks = _retrieve_relevant_chunks(question, repository_url=repository_url)
         if not chunks:
             return (
                 "Repository indexing has not been built yet, so I could not retrieve "
-                "enough source context to answer that question."
+                "enough source context to answer that question. You can click '⚡ Index RAG' in the Repositories tab to index this repository."
             )
         return _generate_grounded_answer(question, chunks)
     except GitHubRepositoryNotFoundError:
-        return "Repository not found. Check GITHUB_REPO and confirm the repository exists."
+        return "Repository not found. Please confirm the repository URL exists."
     except GitHubAuthError:
         return "GitHub authentication failed. Check GITHUB_TOKEN and confirm it can read the repository."
     except OpenAIServiceError:
-        return "OpenAI API failed while generating the answer. Please try again in a moment."
+        return "LLM API failed while generating the answer. Please try again in a moment."
     except Exception:
         logger.exception("Unexpected error while answering a code question.")
         return (
@@ -146,20 +146,18 @@ def answer_code_question(question: str) -> str:
 
 
 def _validate_required_settings() -> None:
-    if not settings.github_repo.strip():
-        raise GitHubRepositoryNotFoundError("Missing GITHUB_REPO configuration.")
     if not settings.github_token.strip():
         raise GitHubAuthError("Missing GITHUB_TOKEN configuration.")
 
 
-def _retrieve_relevant_chunks(question: str) -> list[RetrievedChunk]:
-    indexed_chunks = _retrieve_from_chroma(question)
+def _retrieve_relevant_chunks(question: str, repository_url: str | None = None) -> list[RetrievedChunk]:
+    indexed_chunks = _retrieve_from_chroma(question, repository_url=repository_url)
     if indexed_chunks:
         return indexed_chunks
-    return _retrieve_live_repository_context(question)
+    return _retrieve_live_repository_context(question, repository_url=repository_url)
 
 
-def _retrieve_from_chroma(question: str) -> list[RetrievedChunk]:
+def _retrieve_from_chroma(question: str, repository_url: str | None = None) -> list[RetrievedChunk]:
     persist_dir = Path(settings.chroma_persist_dir)
     if not persist_dir.exists():
         return []
@@ -173,14 +171,28 @@ def _retrieve_from_chroma(question: str) -> list[RetrievedChunk]:
         logger.exception("Failed to connect to Chroma persistent store.")
         return []
 
+    # If a specific repository was requested, target its collection first
+    preferred_collection_name = None
+    if repository_url:
+        try:
+            owner, repo = _parse_repo_name(repository_url)
+            preferred_collection_name = sanitize_collection_name(f"{owner}/{repo}")
+        except Exception:
+            pass
+
+    collection_names = [
+        c.name if hasattr(c, "name") else str(c)
+        for c in collections
+    ]
+
+    # Sort so that the preferred collection is queried first
+    if preferred_collection_name and preferred_collection_name in collection_names:
+        collection_names.remove(preferred_collection_name)
+        collection_names.insert(0, preferred_collection_name)
+
     best_chunks: list[RetrievedChunk] = []
 
-    for collection_info in collections:
-        collection_name = (
-            collection_info.name
-            if hasattr(collection_info, "name")
-            else str(collection_info)
-        )
+    for collection_name in collection_names:
         try:
             collection = client.get_collection(
                 collection_name,
@@ -213,8 +225,8 @@ def _retrieve_from_chroma(question: str) -> list[RetrievedChunk]:
     return best_chunks
 
 
-def _retrieve_live_repository_context(question: str) -> list[RetrievedChunk]:
-    owner, repo = _parse_repo_name()
+def _retrieve_live_repository_context(question: str, repository_url: str | None = None) -> list[RetrievedChunk]:
+    owner, repo = _parse_repo_name(repository_url)
     with _github_client() as client:
         default_branch = _fetch_default_branch(client, owner, repo)
         tree = _fetch_repository_tree(client, owner, repo, default_branch)
@@ -235,12 +247,16 @@ def _retrieve_live_repository_context(question: str) -> list[RetrievedChunk]:
         return chunks
 
 
-def _parse_repo_name() -> tuple[str, str]:
-    if "/" not in settings.github_repo:
-        raise GitHubRepositoryNotFoundError("GITHUB_REPO must use the 'owner/repo' format.")
-    owner, repo = settings.github_repo.split("/", 1)
+def _parse_repo_name(repo_url: str | None = None) -> tuple[str, str]:
+    target = (repo_url or settings.github_repo).strip()
+    target = re.sub(r"^https?://github\.com/", "", target)
+    target = re.sub(r"^git@github\.com:", "", target)
+    target = re.sub(r"\.git$", "", target).strip("/")
+    if "/" not in target:
+        raise GitHubRepositoryNotFoundError(f"Invalid repository '{target}'. Expected 'owner/repo' format.")
+    owner, repo = target.split("/", 1)
     if not owner or not repo:
-        raise GitHubRepositoryNotFoundError("GITHUB_REPO must use the 'owner/repo' format.")
+        raise GitHubRepositoryNotFoundError(f"Invalid repository '{target}'. Expected 'owner/repo' format.")
     return owner, repo
 
 
@@ -369,14 +385,10 @@ def _generate_grounded_answer(question: str, chunks: list[RetrievedChunk]) -> st
     )
 
     try:
-        llm = ChatOpenAI(
-            api_key=settings.openai_api_key,
-            model="gpt-4o-mini",
-            temperature=0.1,
-        )
+        llm = get_chat_llm(model="openai/gpt-4o-mini", temperature=0.1)
         response = llm.invoke(prompt)
     except Exception:
-        logger.exception("OpenAI call failed while answering a code question.")
+        logger.exception("LLM call failed while answering a code question.")
         return _build_fallback_answer(question, chunks)
 
     content = getattr(response, "content", "")
@@ -418,11 +430,7 @@ def _generate_security_answer(question: str, chunks: list[RetrievedChunk]) -> st
     )
 
     try:
-        llm = ChatOpenAI(
-            api_key=settings.openai_api_key,
-            model="gpt-4o-mini",
-            temperature=0.1,
-        )
+        llm = get_chat_llm(model="openai/gpt-4o-mini", temperature=0.1)
         response = llm.invoke(prompt)
     except Exception:
         logger.exception("OpenAI call failed while generating a security review.")

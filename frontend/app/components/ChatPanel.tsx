@@ -11,11 +11,19 @@ type Message = {
   isStreaming?: boolean;
 };
 
+type Repository = {
+  id: number;
+  name: string;
+  repo_url: string;
+};
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
 type ChatPanelProps = {
   token?: string;
   prefillQuery?: string;
+  selectedRepoUrl?: string;
+  onSelectRepoUrl?: (url: string) => void;
 };
 
 type AgentType = "auto" | "github" | "ci" | "code" | "pr_review";
@@ -71,13 +79,15 @@ function formatTimestamp(): string {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
+export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSelectRepoUrl }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState(prefillQuery || "");
   const [loading, setLoading] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentType>("auto");
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [openAccordions, setOpenAccordions] = useState<Record<number, boolean>>({});
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [currentRepoUrl, setCurrentRepoUrl] = useState<string>(selectedRepoUrl || "");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,8 +97,30 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
   }, [prefillQuery]);
 
   useEffect(() => {
+    if (selectedRepoUrl) {
+      setCurrentRepoUrl(selectedRepoUrl);
+    }
+  }, [selectedRepoUrl]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE}/repositories`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: Repository[]) => {
+        setRepositories(data);
+        if (data.length > 0 && !currentRepoUrl && !selectedRepoUrl) {
+          setCurrentRepoUrl(data[0].repo_url);
+          if (onSelectRepoUrl) onSelectRepoUrl(data[0].repo_url);
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   function toggleAccordion(index: number) {
     setOpenAccordions((prev) => ({
@@ -135,7 +167,10 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
         }).catch(() => {});
       }
 
-      const payload: Record<string, any> = { message: queryText };
+      const payload: Record<string, any> = {
+        message: queryText,
+        repository_url: currentRepoUrl || undefined,
+      };
       if (selectedAgent !== "auto") {
         payload["agent_type"] = selectedAgent;
       }
@@ -262,6 +297,10 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
     setTimeout(() => setCopiedIndex(null), 2000);
   }
 
+  const cleanRepoLabel = currentRepoUrl
+    ? currentRepoUrl.replace(/https?:\/\/github\.com\//, "").replace(/\.git$/, "")
+    : "Configured Repo";
+
   return (
     <div className="flex h-[calc(100vh-130px)] flex-col rounded-2xl glass-panel shadow-2xl overflow-hidden">
       {/* Top Header & Agent Selector */}
@@ -276,59 +315,85 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
           </div>
         </div>
 
-        {/* Agent Routing Pills */}
-        <div className="flex flex-wrap items-center gap-1 rounded-xl bg-gray-900/90 p-1 border border-white/5 text-xs">
-          <button
-            onClick={() => setSelectedAgent("auto")}
-            className={`rounded-lg px-2.5 py-1 font-medium transition ${
-              selectedAgent === "auto"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-gray-400 hover:text-gray-200"
-            }`}
-            title="Automatically routes based on intent"
-          >
-            Auto-Route
-          </button>
-          <button
-            onClick={() => setSelectedAgent("pr_review")}
-            className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
-              selectedAgent === "pr_review"
-                ? "bg-rose-600 text-white shadow-sm"
-                : "text-gray-400 hover:text-rose-300"
-            }`}
-          >
-            🔍 PR Review
-          </button>
-          <button
-            onClick={() => setSelectedAgent("github")}
-            className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
-              selectedAgent === "github"
-                ? "bg-purple-600 text-white shadow-sm"
-                : "text-gray-400 hover:text-purple-300"
-            }`}
-          >
-            🐙 GitHub
-          </button>
-          <button
-            onClick={() => setSelectedAgent("ci")}
-            className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
-              selectedAgent === "ci"
-                ? "bg-amber-600 text-white shadow-sm"
-                : "text-gray-400 hover:text-amber-300"
-            }`}
-          >
-            ⚙️ CI/CD
-          </button>
-          <button
-            onClick={() => setSelectedAgent("code")}
-            className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
-              selectedAgent === "code"
-                ? "bg-cyan-600 text-white shadow-sm"
-                : "text-gray-400 hover:text-cyan-300"
-            }`}
-          >
-            ⚡ Code/RAG
-          </button>
+        {/* Repository Scope Selector & Agent Pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Repository Selector Dropdown */}
+          <div className="flex items-center gap-1.5 rounded-xl bg-gray-900/90 px-2.5 py-1 border border-white/10 text-xs">
+            <span className="text-blue-400 font-semibold">📁 Repo:</span>
+            <select
+              value={currentRepoUrl}
+              onChange={(e) => {
+                setCurrentRepoUrl(e.target.value);
+                if (onSelectRepoUrl) onSelectRepoUrl(e.target.value);
+              }}
+              className="bg-transparent text-gray-200 outline-none cursor-pointer text-xs font-medium max-w-[160px] sm:max-w-[220px] truncate"
+              title="Select which connected repository this Copilot should analyze"
+            >
+              <option value="" className="bg-gray-950 text-gray-400">
+                Default (.env)
+              </option>
+              {repositories.map((repo) => (
+                <option key={repo.id} value={repo.repo_url} className="bg-gray-950 text-white">
+                  {repo.name} ({repo.repo_url.replace(/https?:\/\/github\.com\//, "")})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Agent Routing Pills */}
+          <div className="flex flex-wrap items-center gap-1 rounded-xl bg-gray-900/90 p-1 border border-white/5 text-xs">
+            <button
+              onClick={() => setSelectedAgent("auto")}
+              className={`rounded-lg px-2.5 py-1 font-medium transition ${
+                selectedAgent === "auto"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-gray-400 hover:text-gray-200"
+              }`}
+              title="Automatically routes based on intent"
+            >
+              Auto-Route
+            </button>
+            <button
+              onClick={() => setSelectedAgent("pr_review")}
+              className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+                selectedAgent === "pr_review"
+                  ? "bg-rose-600 text-white shadow-sm"
+                  : "text-gray-400 hover:text-rose-300"
+              }`}
+            >
+              🔍 PR Review
+            </button>
+            <button
+              onClick={() => setSelectedAgent("github")}
+              className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+                selectedAgent === "github"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-gray-400 hover:text-purple-300"
+              }`}
+            >
+              🐙 GitHub
+            </button>
+            <button
+              onClick={() => setSelectedAgent("ci")}
+              className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+                selectedAgent === "ci"
+                  ? "bg-amber-600 text-white shadow-sm"
+                  : "text-gray-400 hover:text-amber-300"
+              }`}
+            >
+              ⚙️ CI/CD
+            </button>
+            <button
+              onClick={() => setSelectedAgent("code")}
+              className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+                selectedAgent === "code"
+                  ? "bg-cyan-600 text-white shadow-sm"
+                  : "text-gray-400 hover:text-cyan-300"
+              }`}
+            >
+              ⚡ Code/RAG
+            </button>
+          </div>
         </div>
 
         {messages.length > 0 && (
@@ -350,7 +415,7 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
             </div>
             <h3 className="text-base font-semibold text-white">How can Relay assist your engineering workflow?</h3>
             <p className="mt-1 text-xs text-gray-400">
-              Select a specialized query below or type your question about code, PR reviews, CI workflows, or GitHub activity.
+              Active Scope: <span className="text-blue-400 font-semibold">{cleanRepoLabel}</span>. Select a specialized query below or ask any question.
             </p>
 
             {/* Quick Prompts */}
@@ -485,8 +550,8 @@ export default function ChatPanel({ token, prefillQuery }: ChatPanelProps) {
             className="flex-1 rounded-xl border border-white/10 bg-gray-900/90 px-4 py-2.5 text-xs md:text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
             placeholder={
               selectedAgent === "auto"
-                ? "Ask about PR reviews, repository code, CI logs, or GitHub metadata..."
-                : `Querying ${selectedAgent.toUpperCase()} Agent directly...`
+                ? `Ask about ${cleanRepoLabel}...`
+                : `Querying ${selectedAgent.toUpperCase()} Agent directly for ${cleanRepoLabel}...`
             }
             value={input}
             onChange={(e) => setInput(e.target.value)}

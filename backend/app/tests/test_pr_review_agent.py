@@ -29,6 +29,7 @@ class TestPRReviewAgent(unittest.TestCase):
             "Review diff changes in pull request 7",
             "Perform a code review on #12",
             "Inspect PR diff",
+            "Review the latest open pull request diff and suggest fixes",
         ]
         for query in valid_queries:
             request = AgentRequest(query_text=query)

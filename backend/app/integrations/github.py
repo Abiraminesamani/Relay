@@ -67,12 +67,20 @@ def get_repository_overview(repo_target: str | None = None) -> GitHubRepositoryO
         ) from exc
 
     repo_data = repo_response.json()
+    owner_info = repo_data.get("owner", {})
+    owner_name = owner_info.get("login", coordinates.owner) if isinstance(owner_info, dict) else str(owner_info or coordinates.owner)
+
     return GitHubRepositoryOverview(
         repository=GitHubRepoMetadata(
-            full_name=repo_data["full_name"],
+            full_name=repo_data.get("full_name", f"{coordinates.owner}/{coordinates.repo}"),
+            owner=owner_name,
+            created_at=repo_data.get("created_at"),
+            language=repo_data.get("language"),
+            stars=repo_data.get("stargazers_count", 0),
+            forks=repo_data.get("forks_count", 0),
             description=repo_data.get("description"),
             default_branch=repo_data.get("default_branch", "main"),
-            html_url=repo_data["html_url"],
+            html_url=repo_data.get("html_url", f"https://github.com/{coordinates.owner}/{coordinates.repo}"),
         ),
         branches=[branch["name"] for branch in branches_response.json()],
         recent_commits=[

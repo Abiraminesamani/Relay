@@ -3,9 +3,14 @@ from pydantic import BaseModel
 
 class GitHubRepoMetadata(BaseModel):
     full_name: str
-    description: str | None
-    default_branch: str
-    html_url: str
+    owner: str | None = None
+    created_at: str | None = None
+    language: str | None = None
+    stars: int = 0
+    forks: int = 0
+    description: str | None = None
+    default_branch: str = "main"
+    html_url: str = ""
 
 
 class GitHubCommit(BaseModel):

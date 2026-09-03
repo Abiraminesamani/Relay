@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+import re
 from fastapi import HTTPException
 
 from app.agents.base import AgentRequest, AgentResult, RelayAgent
+from app.config import settings
 from app.core.llm import get_chat_llm
 from app.integrations.github import GitHubRepositoryOverview, get_repository_overview
 
@@ -13,32 +15,59 @@ logger = logging.getLogger(__name__)
 class GitHubAgent(RelayAgent):
     name = "GitHub Agent"
     agent_type = "github"
-    description = "Handles GitHub repository metadata, branch, commit, and pull request questions."
+    description = "Handles GitHub repository metadata, creator/owner info, branch, commit, and pull request questions."
 
     def can_handle(self, request: AgentRequest) -> bool:
         text = request.query_text.casefold()
-        # Defer code review and diff inspection queries to PRReviewAgent
+
+        # Defer PR code review and diff inspection queries to PRReviewAgent
         if any(action in text for action in ("review", "diff", "suggest fixes", "audit", "inspect")) and any(
             target in text for target in ("pr", "pull request", "diff", "patch")
         ):
             return False
-        return any(
-            keyword in text
-            for keyword in (
-                "github",
-                "branch",
-                "branches",
-                "commit",
-                "commits",
-                "pull request",
-                "pull requests",
-                "repository metadata",
-                "overview",
-                "contributor",
-                "contributors",
-                "author",
-            )
+
+        # Keywords covering metadata, branches, commits, PRs, creators, and authors
+        keywords = (
+            "github",
+            "branch",
+            "branches",
+            "commit",
+            "commits",
+            "pull request",
+            "pull requests",
+            "prs",
+            "repository metadata",
+            "overview",
+            "contributor",
+            "contributors",
+            "author",
+            "authors",
+            "creator",
+            "created",
+            "who created",
+            "who made",
+            "who built",
+            "who wrote",
+            "who is the owner",
+            "owner",
+            "stats",
+            "stars",
+            "forks",
+            "when was this",
         )
+        if any(k in text for k in keywords):
+            return True
+
+        # Check if the query asks about the owner mentioned in repository URL
+        target_repo = request.repository_url or settings.github_repo
+        if target_repo:
+            cleaned = re.sub(r"^https?://github\.com/", "", target_repo).strip("/")
+            if "/" in cleaned:
+                owner, _ = cleaned.split("/", 1)
+                if owner.lower() in text:
+                    return True
+
+        return False
 
     def handle(self, request: AgentRequest) -> AgentResult:
         try:
@@ -67,6 +96,10 @@ class GitHubAgent(RelayAgent):
         context = (
             f"Repository: {overview.repository.full_name}\n"
             f"HTML URL: {overview.repository.html_url}\n"
+            f"Creator / Owner: {overview.repository.owner or 'Unknown'}\n"
+            f"Created At: {overview.repository.created_at or 'Unknown'}\n"
+            f"Primary Language: {overview.repository.language or 'Not specified'}\n"
+            f"Stars: {overview.repository.stars} | Forks: {overview.repository.forks}\n"
             f"Description: {overview.repository.description or 'No description provided.'}\n"
             f"Default Branch: `{overview.repository.default_branch}`\n"
             f"All Branches: {branches_text}\n\n"
@@ -78,6 +111,7 @@ class GitHubAgent(RelayAgent):
             "You are Relay's GitHub Agent, an expert Git & GitHub intelligence copilot.\n"
             "Answer the user's question directly, conversationally, and accurately based on the live repository data provided below.\n"
             "Guidelines:\n"
+            "- If the user asks who created or owns the repository, state the creator/owner and creation date.\n"
             "- If the user asks about branches, explain the available branches and highlight the default branch.\n"
             "- If the user asks about commits or recent changes, describe what was changed, by whom, and provide short commit SHAs.\n"
             "- If the user asks about PRs, detail the pull requests and their current states.\n"
@@ -104,8 +138,13 @@ class GitHubAgent(RelayAgent):
     def _build_fallback_summary(self, overview: GitHubRepositoryOverview) -> str:
         response_lines = [
             f"### 🐙 Repository: `{overview.repository.full_name}`",
+            f"- **Owner / Creator**: `{overview.repository.owner}`",
             f"- **Default Branch**: `{overview.repository.default_branch}`",
         ]
+        if overview.repository.created_at:
+            response_lines.append(f"- **Created At**: {overview.repository.created_at}")
+        if overview.repository.language:
+            response_lines.append(f"- **Language**: {overview.repository.language}")
         if overview.repository.description:
             response_lines.append(f"- **Description**: {overview.repository.description}")
         if overview.branches:

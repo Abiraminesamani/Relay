@@ -15,6 +15,27 @@ type AuthPanelProps = {
   onAuthSuccess: (token: string, user: User) => void;
 };
 
+function formatApiError(detail: any): string {
+  if (!detail) return "Authentication failed";
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item: any) => {
+        if (typeof item === "string") return item;
+        if (item.msg) {
+          const field = item.loc ? item.loc[item.loc.length - 1] : "";
+          return field ? `${field}: ${item.msg}` : item.msg;
+        }
+        return JSON.stringify(item);
+      })
+      .join(", ");
+  }
+  if (typeof detail === "object") {
+    return detail.msg || detail.message || detail.detail || JSON.stringify(detail);
+  }
+  return String(detail);
+}
+
 export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
@@ -26,6 +47,13 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Basic email sanity check
+    if (!email.includes(".") || !email.includes("@")) {
+      setError("Please enter a valid email address with a domain (e.g. alex@gmail.com)");
+      return;
+    }
+
     setLoading(true);
 
     const endpoint = mode === "register" ? "/auth/register" : "/auth/login";
@@ -41,7 +69,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.detail || "Authentication failed");
+        throw new Error(formatApiError(data.detail) || "Authentication failed");
       }
 
       onAuthSuccess(data.access_token, data.user);
@@ -130,7 +158,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="alex@company.com"
+              placeholder="alex@gmail.com"
               className="w-full rounded-lg border border-gray-800 bg-gray-900 px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
             />
           </div>

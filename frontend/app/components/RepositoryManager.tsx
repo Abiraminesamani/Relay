@@ -17,6 +17,27 @@ type RepositoryManagerProps = {
   onSelectRepoForChat?: (repoName: string, repoUrl: string) => void;
 };
 
+function formatApiError(detail: any): string {
+  if (!detail) return "Operation failed";
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item: any) => {
+        if (typeof item === "string") return item;
+        if (item.msg) {
+          const field = item.loc ? item.loc[item.loc.length - 1] : "";
+          return field ? `${field}: ${item.msg}` : item.msg;
+        }
+        return JSON.stringify(item);
+      })
+      .join(", ");
+  }
+  if (typeof detail === "object") {
+    return detail.msg || detail.message || detail.detail || JSON.stringify(detail);
+  }
+  return String(detail);
+}
+
 export default function RepositoryManager({ token, onSelectRepoForChat }: RepositoryManagerProps) {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +86,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed to add repository");
+      if (!res.ok) throw new Error(formatApiError(data.detail) || "Failed to add repository");
 
       setSuccess(`Repository '${data.name}' registered successfully!`);
       setName("");
@@ -89,7 +110,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Indexing failed");
+      if (!res.ok) throw new Error(formatApiError(data.detail) || "Indexing failed");
 
       setIndexedStats((prev) => ({
         ...prev,
@@ -111,7 +132,10 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to delete repository");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(formatApiError(data.detail) || "Failed to delete repository");
+      }
 
       setSuccess(`Repository '${repoName}' deleted.`);
       setRepositories((prev) => prev.filter((r) => r.id !== id));

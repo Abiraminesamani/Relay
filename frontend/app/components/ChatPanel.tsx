@@ -67,8 +67,8 @@ const AGENT_CONFIGS: Record<
 };
 
 const SUGGESTED_PROMPTS = [
+  { agent: "ci", icon: "⚙️", label: "CI Failure Analysis", query: "Why did the latest CI/CD workflow pipeline fail?" },
   { agent: "pr_review", icon: "🔍", label: "Automated PR Review", query: "Review the latest open pull request diff and suggest fixes" },
-  { agent: "ci", icon: "⚙️", label: "CI Failure Diagnosis", query: "Why did the latest CI/CD workflow pipeline fail?" },
   { agent: "code", icon: "⚡", label: "Architecture Summary", query: "Explain the backend architecture and service layer in this repo" },
   { agent: "code", icon: "🛡️", label: "Security Audit", query: "Run a security scan on this repository for hardcoded secrets and flaws" },
   { agent: "github", icon: "🐙", label: "Branches & PRs", query: "Show repository branches, latest commits and pull requests" },
@@ -159,7 +159,6 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
 
-        // Asynchronously record to user query history
         fetch(`${API_BASE}/queries`, {
           method: "POST",
           headers,
@@ -254,7 +253,7 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
               accumulatedContent += `\n\n⚠️ ${eventData.message}`;
             }
           } catch {
-            // Ignore partial SSE chunk parses
+            // Ignore partial SSE parse
           }
         }
       }
@@ -299,35 +298,43 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
 
   const cleanRepoLabel = currentRepoUrl
     ? currentRepoUrl.replace(/https?:\/\/github\.com\//, "").replace(/\.git$/, "")
-    : "Configured Repo";
+    : "smartems";
 
   return (
-    <div className="flex h-[calc(100vh-130px)] flex-col rounded-2xl glass-panel shadow-2xl overflow-hidden">
-      {/* Top Header & Agent Selector */}
-      <div className="border-b border-white/5 bg-gray-950/60 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+    <div className="flex h-[calc(100vh-100px)] flex-col rounded-2xl glass-panel shadow-2xl overflow-hidden border border-white/10">
+      {/* Header Bar */}
+      <div className="border-b border-white/5 bg-[#0a0c13]/90 px-5 py-3 flex flex-wrap items-center justify-between gap-3 backdrop-blur-xl">
+        {/* Active Repo Badge */}
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400 font-bold border border-blue-500/30 text-sm">
-            ✦
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400 font-bold border border-indigo-500/20 text-xs">
+            📁
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white tracking-wide">Relay Multi-Agent Copilot</h2>
-            <p className="text-[11px] text-gray-400">Live SSE Streaming & Visual Reasoning</p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-bold text-white tracking-wide truncate max-w-[200px] sm:max-w-xs">
+                {cleanRepoLabel}
+              </h2>
+              <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[9px] font-semibold">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
+                <span>Connected</span>
+              </span>
+            </div>
+            <p className="text-[10px] text-gray-500">Live multi-agent intelligence</p>
           </div>
         </div>
 
-        {/* Repository Scope Selector & Agent Pills */}
+        {/* Controls: Repo Selector & Agent Pills */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Repository Selector Dropdown */}
-          <div className="flex items-center gap-1.5 rounded-xl bg-gray-900/90 px-2.5 py-1 border border-white/10 text-xs">
-            <span className="text-blue-400 font-semibold">📁 Repo:</span>
+          {/* Repository Selector */}
+          <div className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] px-2.5 py-1 border border-white/10 text-xs">
+            <span className="text-indigo-400 text-xs">📁</span>
             <select
               value={currentRepoUrl}
               onChange={(e) => {
                 setCurrentRepoUrl(e.target.value);
                 if (onSelectRepoUrl) onSelectRepoUrl(e.target.value);
               }}
-              className="bg-transparent text-gray-200 outline-none cursor-pointer text-xs font-medium max-w-[160px] sm:max-w-[220px] truncate"
-              title="Select which connected repository this Copilot should analyze"
+              className="bg-transparent text-gray-200 outline-none cursor-pointer text-xs font-medium max-w-[140px] sm:max-w-[180px] truncate"
             >
               <option value="" className="bg-gray-950 text-gray-400">
                 Default (.env)
@@ -340,24 +347,23 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
             </select>
           </div>
 
-          {/* Agent Routing Pills */}
-          <div className="flex flex-wrap items-center gap-1 rounded-xl bg-gray-900/90 p-1 border border-white/5 text-xs">
+          {/* Agent Pills */}
+          <div className="flex items-center gap-1 rounded-xl bg-white/[0.04] p-1 border border-white/5 text-xs">
             <button
               onClick={() => setSelectedAgent("auto")}
-              className={`rounded-lg px-2.5 py-1 font-medium transition ${
+              className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${
                 selectedAgent === "auto"
-                  ? "bg-blue-600 text-white shadow-sm"
+                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
                   : "text-gray-400 hover:text-gray-200"
               }`}
-              title="Automatically routes based on intent"
             >
               Auto-Route
             </button>
             <button
               onClick={() => setSelectedAgent("pr_review")}
-              className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+              className={`rounded-lg px-2 py-1 text-[11px] font-semibold transition flex items-center gap-1 ${
                 selectedAgent === "pr_review"
-                  ? "bg-rose-600 text-white shadow-sm"
+                  ? "bg-rose-600 text-white shadow-sm glow-rose"
                   : "text-gray-400 hover:text-rose-300"
               }`}
             >
@@ -365,9 +371,9 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
             </button>
             <button
               onClick={() => setSelectedAgent("github")}
-              className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+              className={`rounded-lg px-2 py-1 text-[11px] font-semibold transition flex items-center gap-1 ${
                 selectedAgent === "github"
-                  ? "bg-purple-600 text-white shadow-sm"
+                  ? "bg-purple-600 text-white shadow-sm glow-purple"
                   : "text-gray-400 hover:text-purple-300"
               }`}
             >
@@ -375,9 +381,9 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
             </button>
             <button
               onClick={() => setSelectedAgent("ci")}
-              className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+              className={`rounded-lg px-2 py-1 text-[11px] font-semibold transition flex items-center gap-1 ${
                 selectedAgent === "ci"
-                  ? "bg-amber-600 text-white shadow-sm"
+                  ? "bg-amber-600 text-white shadow-sm glow-amber"
                   : "text-gray-400 hover:text-amber-300"
               }`}
             >
@@ -385,50 +391,50 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
             </button>
             <button
               onClick={() => setSelectedAgent("code")}
-              className={`rounded-lg px-2.5 py-1 font-medium transition flex items-center gap-1 ${
+              className={`rounded-lg px-2 py-1 text-[11px] font-semibold transition flex items-center gap-1 ${
                 selectedAgent === "code"
-                  ? "bg-cyan-600 text-white shadow-sm"
+                  ? "bg-cyan-600 text-white shadow-sm glow-blue"
                   : "text-gray-400 hover:text-cyan-300"
               }`}
             >
               ⚡ Code/RAG
             </button>
           </div>
-        </div>
 
-        {messages.length > 0 && (
-          <button
-            onClick={() => setMessages([])}
-            className="text-xs text-gray-500 hover:text-gray-300 transition"
-          >
-            Clear Chat
-          </button>
-        )}
+          {messages.length > 0 && (
+            <button
+              onClick={() => setMessages([])}
+              className="text-[11px] text-gray-500 hover:text-gray-300 px-2 py-1 transition"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Messages Stream */}
+      {/* Messages Stream Canvas */}
       <div className="flex-1 space-y-4 overflow-y-auto p-5 pr-3">
         {messages.length === 0 && (
           <div className="py-10 text-center max-w-2xl mx-auto">
-            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600/20 to-purple-600/20 text-blue-400 mb-4 border border-white/10 shadow-lg glow-blue">
-              <span className="text-2xl">🤖</span>
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600/20 text-indigo-400 mb-3 border border-indigo-500/30 shadow-lg glow-indigo text-xl">
+              ⚡
             </div>
-            <h3 className="text-base font-semibold text-white">How can Relay assist your engineering workflow?</h3>
+            <h3 className="text-base font-bold text-white">How can Relay assist your engineering workflow?</h3>
             <p className="mt-1 text-xs text-gray-400">
-              Active Scope: <span className="text-blue-400 font-semibold">{cleanRepoLabel}</span>. Select a specialized query below or ask any question.
+              Active Scope: <span className="text-indigo-400 font-semibold">{cleanRepoLabel}</span>. Select a prompt or ask any question.
             </p>
 
             {/* Quick Prompts */}
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
               {SUGGESTED_PROMPTS.map((p, idx) => (
                 <button
                   key={idx}
                   onClick={() => sendMessage(p.query)}
-                  className="rounded-xl glass-card p-3 text-xs text-gray-300 hover:text-white transition group border border-white/5 hover:border-blue-500/30 hover:bg-gray-800/40"
+                  className="rounded-xl glass-card p-3 text-xs text-gray-300 hover:text-white transition group border border-white/5 hover:border-indigo-500/30"
                 >
-                  <div className="flex items-center gap-1.5 font-medium text-gray-200 mb-1">
+                  <div className="flex items-center gap-1.5 font-semibold text-gray-200 mb-1">
                     <span>{p.icon}</span>
-                    <span className="group-hover:text-blue-400 transition">{p.label}</span>
+                    <span className="group-hover:text-indigo-300 transition">{p.label}</span>
                   </div>
                   <div className="text-[11px] text-gray-400 line-clamp-1">{p.query}</div>
                 </button>
@@ -450,7 +456,7 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
                 <div className="mb-1.5 flex items-center gap-2">
                   <span
                     className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
-                      config ? config.badgeBg : "bg-blue-500/10 text-blue-300 border-blue-500/30"
+                      config ? config.badgeBg : "bg-indigo-500/10 text-indigo-300 border-indigo-500/30"
                     }`}
                   >
                     <span>{config?.icon || "✦"}</span>
@@ -464,16 +470,16 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
 
               {/* Visual Reasoning Steps Accordion */}
               {message.role === "assistant" && message.steps && message.steps.length > 0 && (
-                <div className="mb-2.5 w-full max-w-2xl rounded-xl border border-white/10 bg-gray-950/70 p-2.5 text-xs text-gray-300 shadow-sm backdrop-blur-md">
+                <div className="mb-2.5 w-full max-w-2xl rounded-xl border border-white/10 bg-[#0c0e15]/80 p-2.5 text-xs text-gray-300 shadow-sm backdrop-blur-md">
                   <button
                     onClick={() => toggleAccordion(index)}
                     className="flex items-center justify-between w-full text-[11px] font-medium text-gray-300 hover:text-white transition"
                   >
                     <div className="flex items-center gap-2">
                       {message.isStreaming ? (
-                        <div className="h-2 w-2 rounded-full bg-blue-500 animate-ping" />
+                        <div className="h-2 w-2 rounded-full bg-indigo-500 animate-ping" />
                       ) : (
-                        <span className="text-emerald-400 text-xs">✓</span>
+                        <span className="text-emerald-400 text-xs font-bold">✓</span>
                       )}
                       <span>
                         Reasoning & Execution ({message.steps.length} {message.steps.length === 1 ? "step" : "steps"})
@@ -486,7 +492,7 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
                     <div className="mt-2 space-y-1 border-t border-white/5 pt-2 pl-2 text-[11px] font-mono text-gray-400">
                       {message.steps.map((step, sIdx) => (
                         <div key={sIdx} className="flex items-start gap-1.5">
-                          <span className="text-blue-400 select-none">›</span>
+                          <span className="text-indigo-400 select-none">›</span>
                           <span className="leading-tight">{step}</span>
                         </div>
                       ))}
@@ -495,11 +501,12 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
                 </div>
               )}
 
+              {/* Message Content Container */}
               <div
                 className={`relative group rounded-2xl px-4 py-3 text-xs md:text-sm leading-relaxed max-w-3xl whitespace-pre-wrap break-words ${
                   message.role === "user"
-                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-br-none shadow-md"
-                    : "bg-gray-950/90 border border-white/10 text-gray-200 rounded-bl-none shadow-sm"
+                    ? "bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 text-white rounded-br-none shadow-lg glow-indigo"
+                    : "bg-[#0c0e16]/90 border border-white/10 text-gray-200 rounded-bl-none shadow-md"
                 }`}
               >
                 {message.content || (message.isStreaming && (
@@ -524,33 +531,40 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
         })}
 
         {loading && (
-          <div className="flex items-center gap-2.5 text-xs text-blue-400 py-2 px-1">
+          <div className="flex items-center gap-2.5 text-xs text-indigo-400 py-2 px-1">
             <div className="flex space-x-1">
-              <div className="h-2 w-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+              <div className="h-2 w-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
               <div className="h-2 w-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-              <div className="h-2 w-2 bg-rose-500 rounded-full animate-bounce [animation-delay:-0.05s]"></div>
               <div className="h-2 w-2 bg-cyan-500 rounded-full animate-bounce"></div>
             </div>
-            <span className="text-gray-400 text-xs font-medium">Relay streaming live evaluation...</span>
+            <span className="text-gray-400 text-xs font-medium">Relay multi-agent reasoning active...</span>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Bar */}
-      <div className="border-t border-white/5 bg-gray-950/70 p-3.5">
+      {/* Floating Bottom Input Bar */}
+      <div className="border-t border-white/5 bg-[#0a0c13]/95 p-3 backdrop-blur-xl">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             sendMessage();
           }}
-          className="flex gap-2"
+          className="flex items-center gap-2 rounded-2xl border border-white/10 bg-gray-900/90 px-3 py-2 focus-within:border-indigo-500/60 focus-within:ring-1 focus-within:ring-indigo-500/40 transition"
         >
+          <button
+            type="button"
+            onClick={() => sendMessage("Run a full repository security scan and check open PRs")}
+            className="text-gray-400 hover:text-white p-1 text-xs"
+            title="Quick Action"
+          >
+            📎
+          </button>
           <input
-            className="flex-1 rounded-xl border border-white/10 bg-gray-900/90 px-4 py-2.5 text-xs md:text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+            className="flex-1 bg-transparent text-xs md:text-sm text-white placeholder-gray-500 outline-none"
             placeholder={
               selectedAgent === "auto"
-                ? `Ask about ${cleanRepoLabel}...`
+                ? `Ask anything about ${cleanRepoLabel}...`
                 : `Querying ${selectedAgent.toUpperCase()} Agent directly for ${cleanRepoLabel}...`
             }
             value={input}
@@ -559,7 +573,7 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-xs md:text-sm font-semibold text-white hover:from-blue-500 hover:to-blue-600 active:from-blue-700 active:to-blue-800 disabled:opacity-50 transition shadow-lg shadow-blue-600/20 flex items-center gap-1.5"
+            className="rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 disabled:opacity-40 transition shadow-md glow-indigo flex items-center gap-1"
           >
             <span>Send</span>
             <span>➤</span>

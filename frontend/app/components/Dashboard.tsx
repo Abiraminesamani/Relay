@@ -21,6 +21,7 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
   const [prefillQuery, setPrefillQuery] = useState<string>("");
   const [selectedRepoUrl, setSelectedRepoUrl] = useState<string>("");
   const [activeRepoName, setActiveRepoName] = useState<string>("");
+  const [activeRepoId, setActiveRepoId] = useState<number | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
         if (data.length > 0 && !selectedRepoUrl) {
           setSelectedRepoUrl(data[0].repo_url);
           setActiveRepoName(data[0].name);
+          setActiveRepoId(data[0].id);
         }
       })
       .catch(() => {});
@@ -41,6 +43,8 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
   function handleSelectRepoForChat(repoName: string, repoUrl: string) {
     setSelectedRepoUrl(repoUrl);
     setActiveRepoName(repoName);
+    const match = repositories.find((r) => r.repo_url === repoUrl);
+    if (match) setActiveRepoId(match.id);
     setPrefillQuery(`Explain the structure, key components, and service layer of '${repoName}'`);
     setActiveTab("chat");
   }
@@ -60,6 +64,7 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
       {/* Left Collapsible Navigation Sidebar (Screen 3 style) */}
       <Sidebar
         user={user}
+        token={token}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         onNewChat={handleNewChat}
@@ -146,6 +151,7 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
             <HomeOverview
               user={user}
               token={token}
+              activeRepoId={activeRepoId}
               activeRepoName={activeRepoName}
               activeRepoUrl={selectedRepoUrl}
               onLaunchCopilotQuery={handleLaunchCopilotQuery}
@@ -161,7 +167,10 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
               onSelectRepoUrl={(url) => {
                 setSelectedRepoUrl(url);
                 const match = repositories.find((r) => r.repo_url === url);
-                if (match) setActiveRepoName(match.name);
+                if (match) {
+                  setActiveRepoName(match.name);
+                  setActiveRepoId(match.id);
+                }
               }}
             />
           )}

@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user
 from app.db.models import User
 from app.db.session import get_db
+from app.schemas.analytics import RepositoryAnalytics
 from app.schemas.repository import RepositoryCreate, RepositoryRead, RepositoryUpdate
+from app.services.analytics_service import get_repository_analytics
 from app.services.repository_service import (
     create_repository,
     delete_repository,
@@ -78,3 +80,16 @@ def index_repository_endpoint(
     match = re.search(r"github\.com/([^/]+/[^/]+?)(?:\.git|/)?$", repository.repo_url)
     repo_name = match.group(1) if match else repository.repo_url
     return index_repo(repo=repo_name)
+
+
+@router.get(
+    "/{repository_id}/analytics",
+    response_model=RepositoryAnalytics,
+    summary="Get live repository analytics, metrics, and activity",
+)
+def get_repository_analytics_endpoint(
+    repository_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_repository_analytics(db, current_user, repository_id)

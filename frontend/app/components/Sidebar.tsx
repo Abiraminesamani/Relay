@@ -1,9 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { User } from "./AuthPanel";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+
+type QueryItem = {
+  id: number;
+  query_text: string;
+  created_at: string;
+};
 
 type SidebarProps = {
   user: User;
+  token?: string;
   activeTab: "home" | "chat" | "repos" | "queries" | "settings";
   onSelectTab: (tab: "home" | "chat" | "repos" | "queries" | "settings") => void;
   onNewChat: () => void;
@@ -11,22 +21,54 @@ type SidebarProps = {
   onLogout: () => void;
 };
 
-const RECENT_CHATS = [
-  { icon: "⚙️", title: "CI/CD failure analysis", time: "2m ago", query: "Why did the latest CI/CD workflow pipeline fail?" },
-  { icon: "🏛️", title: "Architecture explanation", time: "1h ago", query: "Explain the backend architecture and service layer in this repo" },
-  { icon: "🔍", title: "Review authentication flow", time: "3h ago", query: "Review the latest open pull request diff and suggest fixes" },
-  { icon: "⚡", title: "Database optimization", time: "Yesterday", query: "Explain database entities and optimization opportunities" },
-  { icon: "🛡️", title: "Security vulnerabilities", time: "2 days ago", query: "Run a security scan on this repository for hardcoded secrets and flaws" },
-];
+function formatTimeAgo(isoString: string): string {
+  try {
+    const d = new Date(isoString);
+    const now = new Date();
+    const diffSec = Math.floor((now.getTime() - d.getTime()) / 1000);
+    if (diffSec < 60) return "just now";
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+    return `${Math.floor(diffSec / 86400)}d ago`;
+  } catch {
+    return "recent";
+  }
+}
 
 export default function Sidebar({
   user,
+  token,
   activeTab,
   onSelectTab,
   onNewChat,
   onSelectRecentQuery,
   onLogout,
 }: SidebarProps) {
+  const [recentQueries, setRecentQueries] = useState<QueryItem[]>([]);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE}/queries`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: QueryItem[]) => {
+        if (Array.isArray(data)) {
+          setRecentQueries(data.slice(0, 5));
+        }
+      })
+      .catch(() => {});
+  }, [token, activeTab]);
+
+  const defaultRecent = [
+    { id: 1, query_text: "Why did the latest CI/CD workflow pipeline fail?", created_at: new Date(Date.now() - 120000).toISOString() },
+    { id: 2, query_text: "Explain the backend architecture and service layer in this repo", created_at: new Date(Date.now() - 3600000).toISOString() },
+    { id: 3, query_text: "Review the latest open pull request diff and suggest fixes", created_at: new Date(Date.now() - 10800000).toISOString() },
+    { id: 4, query_text: "Run a security scan on this repository for hardcoded secrets and flaws", created_at: new Date(Date.now() - 86400000).toISOString() },
+  ];
+
+  const displayQueries = recentQueries.length > 0 ? recentQueries : defaultRecent;
+
   return (
     <aside className="w-64 flex-shrink-0 flex flex-col justify-between border-r border-white/5 bg-[#090b10]/95 backdrop-blur-2xl p-4 shadow-2xl h-screen sticky top-0">
       <div className="space-y-5">
@@ -120,20 +162,20 @@ export default function Sidebar({
           </div>
 
           <div className="space-y-0.5">
-            {RECENT_CHATS.map((chat, idx) => (
+            {displayQueries.map((chat) => (
               <button
-                key={idx}
+                key={chat.id}
                 onClick={() => {
-                  onSelectRecentQuery(chat.query);
+                  onSelectRecentQuery(chat.query_text);
                   onSelectTab("chat");
                 }}
                 className="w-full text-left rounded-lg px-2.5 py-1.5 text-[11px] text-gray-300 hover:bg-white/[0.04] hover:text-white transition flex items-center justify-between group"
               >
                 <div className="flex items-center gap-2 truncate pr-1">
-                  <span className="text-xs">{chat.icon}</span>
-                  <span className="truncate group-hover:text-indigo-300 transition">{chat.title}</span>
+                  <span className="text-xs">💬</span>
+                  <span className="truncate group-hover:text-indigo-300 transition">{chat.query_text}</span>
                 </div>
-                <span className="text-[9px] text-gray-600 whitespace-nowrap">{chat.time}</span>
+                <span className="text-[9px] text-gray-600 whitespace-nowrap">{formatTimeAgo(chat.created_at)}</span>
               </button>
             ))}
           </div>

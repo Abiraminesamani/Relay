@@ -1,15 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { User } from "./AuthPanel";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+
+type LanguageStat = {
+  name: string;
+  bytes: number;
+  percentage: number;
+  color: string;
+};
+
+type ActivityEvent = {
+  icon: string;
+  title: string;
+  desc: string;
+  time: string;
+  type: string;
+};
+
+type CIStatusSummary = {
+  status: string;
+  passing_count: number;
+  total_count: number;
+  latest_run_name?: string;
+  latest_conclusion?: string;
+};
+
+type RepositoryAnalytics = {
+  repo_id: number;
+  name: string;
+  full_name: string;
+  owner: string;
+  repo_url: string;
+  description?: string;
+  default_branch: string;
+  created_at?: string;
+  stars: number;
+  forks: number;
+  open_issues: number;
+  open_prs_count: number;
+  total_prs_count: number;
+  ci_status: CIStatusSummary;
+  languages: LanguageStat[];
+  recent_activities: ActivityEvent[];
+  chunks_indexed: number;
+};
 
 type HomeOverviewProps = {
   user: User;
   token: string;
+  activeRepoId?: number | null;
   activeRepoName: string;
   activeRepoUrl: string;
   onLaunchCopilotQuery: (query: string, agentType?: string) => void;
-  onNavigateToTab: (tab: "chat" | "repos" | "queries" | "settings") => void;
+  onNavigateToTab: (tab: "home" | "chat" | "repos" | "queries" | "settings") => void;
 };
 
 const QUICK_ACTIONS = [
@@ -54,7 +100,7 @@ const QUICK_ACTIONS = [
     title: "Code Search",
     desc: "Search codebase",
     agent: "code",
-    query: "Find where user authentication and JWT verification are implemented",
+    query: "Find where user authentication and API controllers are implemented",
     color: "from-blue-500/10 to-blue-500/5 hover:border-blue-500/30",
     badgeColor: "text-blue-400 bg-blue-500/10",
   },
@@ -69,43 +115,10 @@ const QUICK_ACTIONS = [
   },
 ];
 
-const RECENT_ACTIVITIES = [
-  {
-    icon: "⭐",
-    title: "PR #142 merged",
-    desc: "feat: add user authentication",
-    time: "2h ago",
-    type: "pr_merged",
-    badgeBg: "text-emerald-400 bg-emerald-500/10",
-  },
-  {
-    icon: "🟢",
-    title: "CI/CD pipeline passed",
-    desc: "main branch (Run #234)",
-    time: "3h ago",
-    type: "ci_pass",
-    badgeBg: "text-emerald-400 bg-emerald-500/10",
-  },
-  {
-    icon: "🔴",
-    title: "Issue #78 closed",
-    desc: "Fix memory leak in data parser",
-    time: "5h ago",
-    type: "issue_closed",
-    badgeBg: "text-purple-400 bg-purple-500/10",
-  },
-  {
-    icon: "🟣",
-    title: "PR #141 opened",
-    desc: "refactor: optimize database queries",
-    time: "6h ago",
-    type: "pr_opened",
-    badgeBg: "text-indigo-400 bg-indigo-500/10",
-  },
-];
-
 export default function HomeOverview({
   user,
+  token,
+  activeRepoId,
   activeRepoName,
   activeRepoUrl,
   onLaunchCopilotQuery,
@@ -113,11 +126,42 @@ export default function HomeOverview({
 }: HomeOverviewProps) {
   const [promptInput, setPromptInput] = useState("");
   const [isStarred, setIsStarred] = useState(true);
+  const [analytics, setAnalytics] = useState<RepositoryAnalytics | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
-  const cleanRepoLabel = activeRepoName || "smartems";
-  const cleanRepoCoordinates = activeRepoUrl
+  useEffect(() => {
+    if (!token || !activeRepoId) return;
+    setLoadingAnalytics(true);
+    fetch(`${API_BASE}/repositories/${activeRepoId}/analytics`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: RepositoryAnalytics | null) => {
+        if (data) setAnalytics(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingAnalytics(false));
+  }, [token, activeRepoId]);
+
+  const cleanRepoLabel = analytics?.name || activeRepoName || "smartems";
+  const cleanRepoCoordinates = analytics?.full_name || (activeRepoUrl
     ? activeRepoUrl.replace(/https?:\/\/github\.com\//, "").replace(/\.git$/, "")
-    : "jaisreen/smartems";
+    : "jaisreen/smartems");
+
+  const openPRs = analytics ? analytics.open_prs_count : 12;
+  const issuesCount = analytics ? analytics.open_issues : 7;
+  const ciStatus = analytics ? analytics.ci_status.status : "All Green";
+  const ciSubtext = analytics
+    ? `${analytics.ci_status.passing_count} workflows passing`
+    : "3 workflows passing";
+  const activities = analytics?.recent_activities?.length
+    ? analytics.recent_activities
+    : [
+        { icon: "⭐", title: "PR #142 merged", desc: "feat: add user authentication", time: "2h ago", type: "pr" },
+        { icon: "🟢", title: "CI/CD pipeline passed", desc: "main branch (Run #234)", time: "3h ago", type: "ci" },
+        { icon: "🔴", title: "Issue #78 closed", desc: "Fix memory leak in data parser", time: "5h ago", type: "issue" },
+        { icon: "🟣", title: "PR #141 opened", desc: "refactor: optimize database queries", time: "6h ago", type: "pr" },
+      ];
 
   function handlePromptSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -180,9 +224,9 @@ export default function HomeOverview({
             <span className="text-xs text-purple-400">↗</span>
           </div>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-bold text-white">12</span>
+            <span className="text-2xl font-bold text-white">{openPRs}</span>
             <span className="text-[11px] font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-md px-1.5 py-0.5">
-              +2 from yesterday
+              {openPRs > 0 ? `+${openPRs} active` : "up to date"}
             </span>
           </div>
         </div>
@@ -191,11 +235,15 @@ export default function HomeOverview({
         <div className="rounded-2xl glass-card p-4 relative overflow-hidden border border-white/10">
           <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
             <span>CI/CD Status</span>
-            <span className="text-xs text-emerald-400 font-bold">✓</span>
+            <span className={`text-xs font-bold ${ciStatus === "All Green" ? "text-emerald-400" : "text-rose-400"}`}>
+              {ciStatus === "All Green" ? "✓" : "⚠️"}
+            </span>
           </div>
           <div className="mt-1">
-            <div className="text-lg font-bold text-emerald-400">All Green</div>
-            <div className="text-[11px] text-gray-400">3 workflows passing</div>
+            <div className={`text-lg font-bold ${ciStatus === "All Green" ? "text-emerald-400" : "text-rose-400"}`}>
+              {ciStatus}
+            </div>
+            <div className="text-[11px] text-gray-400">{ciSubtext}</div>
           </div>
         </div>
 
@@ -206,9 +254,9 @@ export default function HomeOverview({
             <span className="text-xs text-amber-400">⚠️</span>
           </div>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-bold text-white">7</span>
+            <span className="text-2xl font-bold text-white">{issuesCount}</span>
             <span className="text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-md px-1.5 py-0.5">
-              2 high priority
+              {issuesCount > 0 ? `${issuesCount} open` : "zero open"}
             </span>
           </div>
         </div>
@@ -259,7 +307,7 @@ export default function HomeOverview({
             </div>
 
             <div className="space-y-3">
-              {RECENT_ACTIVITIES.map((item, idx) => (
+              {activities.map((item, idx) => (
                 <div key={idx} className="flex items-start justify-between gap-3 text-xs">
                   <div className="flex items-start gap-2.5 min-w-0">
                     <span className="text-xs mt-0.5">{item.icon}</span>
@@ -276,7 +324,7 @@ export default function HomeOverview({
 
           <div className="pt-4 mt-3 border-t border-white/5">
             <button
-              onClick={() => onLaunchCopilotQuery("Summarize the latest 5 commits, open pull requests, and CI status")}
+              onClick={() => onLaunchCopilotQuery(`Summarize the latest commits, open pull requests, and CI status for ${cleanRepoLabel}`)}
               className="w-full rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 py-2 text-xs font-semibold text-gray-300 hover:text-white transition text-center"
             >
               🤖 Generate AI Activity Summary
@@ -293,7 +341,7 @@ export default function HomeOverview({
             type="text"
             value={promptInput}
             onChange={(e) => setPromptInput(e.target.value)}
-            placeholder="Ask Relay anything about your code, deployments, or workflows..."
+            placeholder={`Ask Relay anything about ${cleanRepoLabel}...`}
             className="flex-1 bg-transparent text-xs sm:text-sm text-white placeholder-gray-500 outline-none"
           />
           <button

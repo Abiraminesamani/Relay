@@ -12,6 +12,63 @@ export type Repository = {
   user_id: number;
 };
 
+type LanguageStat = {
+  name: string;
+  bytes: number;
+  percentage: number;
+  color: string;
+};
+
+type MonthlyActivity = {
+  month: string;
+  commits: number;
+};
+
+type ActivityEvent = {
+  icon: string;
+  title: string;
+  desc: string;
+  time: string;
+  type: string;
+};
+
+type CIStatusSummary = {
+  status: string;
+  passing_count: number;
+  total_count: number;
+  latest_run_name?: string;
+  latest_conclusion?: string;
+};
+
+type PullRequestItem = {
+  number: number;
+  title: string;
+  state: string;
+  html_url: string;
+};
+
+type RepositoryAnalytics = {
+  repo_id: number;
+  name: string;
+  full_name: string;
+  owner: string;
+  repo_url: string;
+  description?: string;
+  default_branch: string;
+  created_at?: string;
+  stars: number;
+  forks: number;
+  open_issues: number;
+  open_prs_count: number;
+  total_prs_count: number;
+  ci_status: CIStatusSummary;
+  languages: LanguageStat[];
+  activity_timeline: MonthlyActivity[];
+  recent_activities: ActivityEvent[];
+  pull_requests: PullRequestItem[];
+  chunks_indexed: number;
+};
+
 type RepositoryManagerProps = {
   token: string;
   onSelectRepoForChat?: (repoName: string, repoUrl: string) => void;
@@ -41,6 +98,8 @@ function formatApiError(detail: any): string {
 export default function RepositoryManager({ token, onSelectRepoForChat }: RepositoryManagerProps) {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
+  const [analytics, setAnalytics] = useState<RepositoryAnalytics | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSubTab, setActiveSubTab] = useState<"overview" | "analytics" | "prs" | "issues" | "settings">("overview");
   const [loading, setLoading] = useState(true);
@@ -75,6 +134,21 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
   useEffect(() => {
     fetchRepositories();
   }, []);
+
+  // Fetch Live Analytics whenever selectedRepoId changes
+  useEffect(() => {
+    if (!token || !selectedRepoId) return;
+    setLoadingAnalytics(true);
+    fetch(`${API_BASE}/repositories/${selectedRepoId}/analytics`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: RepositoryAnalytics | null) => {
+        if (data) setAnalytics(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingAnalytics(false));
+  }, [token, selectedRepoId]);
 
   async function handleAddRepository(e: React.FormEvent) {
     e.preventDefault();
@@ -126,6 +200,17 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
         [repo.id]: { files: data.files_indexed || 0, chunks: data.chunks_indexed || 0 },
       }));
       setSuccess(`Successfully indexed ${data.files_indexed} files (${data.chunks_indexed} chunks) for '${repo.name}'!`);
+
+      // Refresh analytics
+      if (selectedRepoId === repo.id) {
+        fetch(`${API_BASE}/repositories/${repo.id}/analytics`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((analyticsData) => {
+            if (analyticsData) setAnalytics(analyticsData);
+          });
+      }
     } catch (err: any) {
       setError(err.message || "Failed to index repository");
     } finally {
@@ -164,6 +249,15 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
 
   const selectedRepo = repositories.find((r) => r.id === selectedRepoId) || repositories[0];
   const isIndexing = selectedRepo ? indexingId === selectedRepo.id : false;
+
+  // Language calculations for SVG Donut
+  const languages = analytics?.languages || [
+    { name: "Python", bytes: 4500, percentage: 45.0, color: "#3b82f6" },
+    { name: "TypeScript", bytes: 2500, percentage: 25.0, color: "#8b5cf6" },
+    { name: "JavaScript", bytes: 1500, percentage: 15.0, color: "#eab308" },
+    { name: "HTML", bytes: 1000, percentage: 10.0, color: "#f43f5e" },
+    { name: "Other", bytes: 500, percentage: 5.0, color: "#64748b" },
+  ];
 
   return (
     <div className="space-y-6 max-w-6xl w-full mx-auto pb-10">
@@ -225,7 +319,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
               filteredRepos.map((repo) => {
                 const isSelected = repo.id === selectedRepoId;
                 const cleanCoords = repo.repo_url.replace(/https?:\/\/github\.com\//, "").replace(/\.git$/, "");
-                const stats = indexedStats[repo.id];
+                const stats = indexedStats[repo.id] || (isSelected && analytics ? { files: 0, chunks: analytics.chunks_indexed } : null);
 
                 return (
                   <button
@@ -254,7 +348,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {stats ? (
+                      {stats && stats.chunks > 0 ? (
                         <span className="text-[9px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded">
                           {stats.chunks}c
                         </span>
@@ -279,9 +373,14 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                   📁
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">{selectedRepo.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-white">{analytics?.name || selectedRepo.name}</h3>
+                    <span className="text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">
+                      {analytics?.default_branch || "main"}
+                    </span>
+                  </div>
                   <p className="text-xs text-gray-400">
-                    {selectedRepo.repo_url.replace(/https?:\/\/github\.com\//, "").replace(/\.git$/, "")}
+                    {analytics?.full_name || selectedRepo.repo_url.replace(/https?:\/\/github\.com\//, "").replace(/\.git$/, "")}
                   </p>
                 </div>
               </div>
@@ -301,7 +400,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                   ) : (
                     <>
                       <span>⚡</span>
-                      <span>Index RAG</span>
+                      <span>Index RAG ({analytics?.chunks_indexed || 0}c)</span>
                     </>
                   )}
                 </button>
@@ -347,159 +446,227 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                       : "text-gray-400 hover:text-gray-200"
                   }`}
                 >
-                  {tab === "prs" ? "Pull Requests" : tab}
+                  {tab === "prs" ? `PRs (${analytics?.total_prs_count || 0})` : tab}
                 </button>
               ))}
             </div>
 
-            {/* 4 Stat Metric Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-xl glass-card p-3.5 border border-white/10">
-                <div className="flex items-center justify-between text-[11px] text-gray-400">
-                  <span>Stars</span>
-                  <span className="text-amber-400">★</span>
-                </div>
-                <div className="text-xl font-bold text-white mt-1">128</div>
-                <div className="text-[10px] text-emerald-400 mt-0.5">+12 this month</div>
-              </div>
+            {/* Sub-Tab 1: Overview */}
+            {activeSubTab === "overview" && (
+              <>
+                {/* 4 Stat Metric Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="rounded-xl glass-card p-3.5 border border-white/10">
+                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                      <span>Stars</span>
+                      <span className="text-amber-400">★</span>
+                    </div>
+                    <div className="text-xl font-bold text-white mt-1">{analytics?.stars ?? 0}</div>
+                    <div className="text-[10px] text-emerald-400 mt-0.5">GitHub repository</div>
+                  </div>
 
-              <div className="rounded-xl glass-card p-3.5 border border-white/10">
-                <div className="flex items-center justify-between text-[11px] text-gray-400">
-                  <span>Forks</span>
-                  <span className="text-indigo-400">⑂</span>
-                </div>
-                <div className="text-xl font-bold text-white mt-1">34</div>
-                <div className="text-[10px] text-emerald-400 mt-0.5">+5 this month</div>
-              </div>
+                  <div className="rounded-xl glass-card p-3.5 border border-white/10">
+                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                      <span>Forks</span>
+                      <span className="text-indigo-400">⑂</span>
+                    </div>
+                    <div className="text-xl font-bold text-white mt-1">{analytics?.forks ?? 0}</div>
+                    <div className="text-[10px] text-emerald-400 mt-0.5">Community forks</div>
+                  </div>
 
-              <div className="rounded-xl glass-card p-3.5 border border-white/10">
-                <div className="flex items-center justify-between text-[11px] text-gray-400">
-                  <span>Issues</span>
-                  <span className="text-amber-400">⚠️</span>
-                </div>
-                <div className="text-xl font-bold text-white mt-1">7</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">2 open</div>
-              </div>
+                  <div className="rounded-xl glass-card p-3.5 border border-white/10">
+                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                      <span>Issues</span>
+                      <span className="text-amber-400">⚠️</span>
+                    </div>
+                    <div className="text-xl font-bold text-white mt-1">{analytics?.open_issues ?? 0}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">open issues</div>
+                  </div>
 
-              <div className="rounded-xl glass-card p-3.5 border border-white/10">
-                <div className="flex items-center justify-between text-[11px] text-gray-400">
-                  <span>Pull Requests</span>
-                  <span className="text-purple-400">↗</span>
-                </div>
-                <div className="text-xl font-bold text-white mt-1">12</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">3 open</div>
-              </div>
-            </div>
-
-            {/* Visual Analytics Grid: Activity Chart & Languages Donut */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-              {/* Activity Overview Spline Chart (7 Columns) */}
-              <div className="md:col-span-7 rounded-2xl glass-card p-4 border border-white/10 flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-white">Activity Overview</span>
-                  <span className="text-[10px] text-gray-400 bg-white/[0.04] px-2 py-0.5 rounded border border-white/5">
-                    Last 6 months ▼
-                  </span>
-                </div>
-
-                {/* SVG Area Spline Curve */}
-                <div className="h-40 w-full relative pt-2">
-                  <svg className="w-full h-full" viewBox="0 0 400 120" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="splineGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366f1" stopOpacity="0.45" />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-                    {/* Horizontal Grid lines */}
-                    <line x1="0" y1="20" x2="400" y2="20" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
-                    <line x1="0" y1="60" x2="400" y2="60" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
-                    <line x1="0" y1="100" x2="400" y2="100" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
-
-                    {/* Area Fill */}
-                    <path
-                      d="M 0,90 Q 50,40 100,75 T 200,30 T 300,65 T 400,20 L 400,120 L 0,120 Z"
-                      fill="url(#splineGradient)"
-                    />
-                    {/* Stroke Line */}
-                    <path
-                      d="M 0,90 Q 50,40 100,75 T 200,30 T 300,65 T 400,20"
-                      fill="none"
-                      stroke="#818cf8"
-                      strokeWidth="2.5"
-                    />
-                    {/* Pulsing Highlight Dot */}
-                    <circle cx="200" cy="30" r="4" fill="#a855f7" stroke="#ffffff" strokeWidth="1.5" />
-                  </svg>
-                  {/* Month Markers */}
-                  <div className="flex items-center justify-between text-[9px] text-gray-500 pt-1">
-                    <span>Jan</span>
-                    <span>Feb</span>
-                    <span>Mar</span>
-                    <span>Apr</span>
-                    <span>May</span>
-                    <span>Jun</span>
-                    <span>Jul</span>
-                    <span>Aug</span>
+                  <div className="rounded-xl glass-card p-3.5 border border-white/10">
+                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                      <span>Pull Requests</span>
+                      <span className="text-purple-400">↗</span>
+                    </div>
+                    <div className="text-xl font-bold text-white mt-1">{analytics?.total_prs_count ?? 0}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">{analytics?.open_prs_count ?? 0} open</div>
                   </div>
                 </div>
-              </div>
 
-              {/* Languages Donut Chart (5 Columns) */}
-              <div className="md:col-span-5 rounded-2xl glass-card p-4 border border-white/10 flex flex-col justify-between">
-                <span className="text-xs font-bold text-white mb-2">Languages</span>
+                {/* Visual Analytics Grid: Activity Chart & Languages Donut */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  {/* Activity Overview Spline Chart (7 Columns) */}
+                  <div className="md:col-span-7 rounded-2xl glass-card p-4 border border-white/10 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-white">Activity Overview</span>
+                      <span className="text-[10px] text-gray-400 bg-white/[0.04] px-2 py-0.5 rounded border border-white/5">
+                        Last 6 months ▼
+                      </span>
+                    </div>
 
-                <div className="flex items-center justify-around gap-2 my-auto">
-                  {/* SVG Donut Circle */}
-                  <div className="relative h-28 w-28 flex items-center justify-center flex-shrink-0">
-                    <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
-                      <circle cx="18" cy="18" r="14" fill="none" stroke="#1f2433" strokeWidth="4" />
-                      {/* Python 45% */}
-                      <circle cx="18" cy="18" r="14" fill="none" stroke="#3b82f6" strokeWidth="4" strokeDasharray="40 100" strokeDashoffset="0" />
-                      {/* TypeScript 25% */}
-                      <circle cx="18" cy="18" r="14" fill="none" stroke="#8b5cf6" strokeWidth="4" strokeDasharray="22 100" strokeDashoffset="-40" />
-                      {/* JavaScript 15% */}
-                      <circle cx="18" cy="18" r="14" fill="none" stroke="#eab308" strokeWidth="4" strokeDasharray="13 100" strokeDashoffset="-62" />
-                      {/* HTML 10% */}
-                      <circle cx="18" cy="18" r="14" fill="none" stroke="#f43f5e" strokeWidth="4" strokeDasharray="9 100" strokeDashoffset="-75" />
-                    </svg>
-                    <div className="absolute text-center">
-                      <div className="text-[11px] font-bold text-white">45%</div>
-                      <div className="text-[8px] text-gray-400">Python</div>
+                    {/* SVG Area Spline Curve */}
+                    <div className="h-40 w-full relative pt-2">
+                      <svg className="w-full h-full" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="splineGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.45" />
+                            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                          </linearGradient>
+                        </defs>
+                        <line x1="0" y1="20" x2="400" y2="20" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+                        <line x1="0" y1="60" x2="400" y2="60" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+                        <line x1="0" y1="100" x2="400" y2="100" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+
+                        <path
+                          d="M 0,90 Q 50,40 100,75 T 200,30 T 300,65 T 400,20 L 400,120 L 0,120 Z"
+                          fill="url(#splineGradient)"
+                        />
+                        <path
+                          d="M 0,90 Q 50,40 100,75 T 200,30 T 300,65 T 400,20"
+                          fill="none"
+                          stroke="#818cf8"
+                          strokeWidth="2.5"
+                        />
+                        <circle cx="200" cy="30" r="4" fill="#a855f7" stroke="#ffffff" strokeWidth="1.5" />
+                      </svg>
+                      {/* Month Markers */}
+                      <div className="flex items-center justify-between text-[9px] text-gray-500 pt-1">
+                        <span>Jan</span>
+                        <span>Feb</span>
+                        <span>Mar</span>
+                        <span>Apr</span>
+                        <span>May</span>
+                        <span>Jun</span>
+                        <span>Jul</span>
+                        <span>Aug</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Legend List */}
-                  <div className="space-y-1.5 text-[10px]">
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-blue-500" />
-                      <span className="text-gray-300">Python</span>
-                      <span className="text-gray-500 ml-auto">45%</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-purple-500" />
-                      <span className="text-gray-300">TypeScript</span>
-                      <span className="text-gray-500 ml-auto">25%</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-yellow-500" />
-                      <span className="text-gray-300">JavaScript</span>
-                      <span className="text-gray-500 ml-auto">15%</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-rose-500" />
-                      <span className="text-gray-300">HTML</span>
-                      <span className="text-gray-500 ml-auto">10%</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-gray-500" />
-                      <span className="text-gray-300">Other</span>
-                      <span className="text-gray-500 ml-auto">5%</span>
+                  {/* Languages Donut Chart (5 Columns) */}
+                  <div className="md:col-span-5 rounded-2xl glass-card p-4 border border-white/10 flex flex-col justify-between">
+                    <span className="text-xs font-bold text-white mb-2">Languages</span>
+
+                    <div className="flex items-center justify-around gap-2 my-auto">
+                      {/* SVG Donut Circle */}
+                      <div className="relative h-28 w-28 flex items-center justify-center flex-shrink-0">
+                        <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+                          <circle cx="18" cy="18" r="14" fill="none" stroke="#1f2433" strokeWidth="4" />
+                          {languages.slice(0, 4).map((lang, idx) => {
+                            const offset = languages.slice(0, idx).reduce((acc, curr) => acc + curr.percentage, 0);
+                            return (
+                              <circle
+                                key={idx}
+                                cx="18"
+                                cy="18"
+                                r="14"
+                                fill="none"
+                                stroke={lang.color}
+                                strokeWidth="4"
+                                strokeDasharray={`${lang.percentage} 100`}
+                                strokeDashoffset={-offset}
+                              />
+                            );
+                          })}
+                        </svg>
+                        <div className="absolute text-center">
+                          <div className="text-[11px] font-bold text-white">
+                            {languages[0]?.percentage || 100}%
+                          </div>
+                          <div className="text-[8px] text-gray-400 truncate max-w-[50px]">
+                            {languages[0]?.name || "Code"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Legend List */}
+                      <div className="space-y-1.5 text-[10px]">
+                        {languages.slice(0, 5).map((lang, idx) => (
+                          <div key={idx} className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: lang.color }} />
+                            <span className="text-gray-300 truncate max-w-[65px]">{lang.name}</span>
+                            <span className="text-gray-500 ml-auto">{lang.percentage}%</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
+              </>
+            )}
+
+            {/* Sub-Tab 2: Analytics & Languages */}
+            {activeSubTab === "analytics" && (
+              <div className="space-y-4 text-xs">
+                <div className="rounded-xl glass-card p-4 border border-white/10 space-y-3">
+                  <h4 className="font-bold text-white">Language Breakdown (Live GitHub Bytes)</h4>
+                  <div className="space-y-2">
+                    {languages.map((l, i) => (
+                      <div key={i} className="space-y-1">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-gray-200 font-semibold">{l.name}</span>
+                          <span className="text-gray-400">{l.percentage}% ({l.bytes.toLocaleString()} bytes)</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${l.percentage}%`, backgroundColor: l.color }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Sub-Tab 3: Pull Requests */}
+            {activeSubTab === "prs" && (
+              <div className="space-y-2">
+                {analytics?.pull_requests?.length ? (
+                  analytics.pull_requests.map((pr) => (
+                    <div key={pr.number} className="rounded-xl glass-card p-3 border border-white/10 flex items-center justify-between text-xs">
+                      <div>
+                        <div className="font-semibold text-white">#{pr.number} {pr.title}</div>
+                        <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          pr.state === "open" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                        }`}>
+                          {pr.state.toUpperCase()}
+                        </span>
+                      </div>
+                      {pr.html_url && (
+                        <a href={pr.html_url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline text-xs">
+                          View on GitHub ↗
+                        </a>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-gray-500 text-xs">No pull requests found for this repository.</div>
+                )}
+              </div>
+            )}
+
+            {/* Sub-Tab 4: Issues */}
+            {activeSubTab === "issues" && (
+              <div className="text-center py-8 text-xs text-gray-400">
+                {analytics?.open_issues ? `There are ${analytics.open_issues} active open issues in this repository.` : "No open issues currently in this repository."}
+              </div>
+            )}
+
+            {/* Sub-Tab 5: Settings */}
+            {activeSubTab === "settings" && (
+              <div className="space-y-3 text-xs">
+                <div className="p-4 rounded-xl glass-card border border-white/10">
+                  <h4 className="font-bold text-white mb-1">RAG Vector Storage</h4>
+                  <p className="text-gray-400">ChromaDB collection: <code className="text-indigo-300">relay_{selectedRepo.name.toLowerCase()}</code> ({analytics?.chunks_indexed || 0} chunks)</p>
+                </div>
+                <div className="p-4 rounded-xl border border-red-500/20 bg-red-950/20">
+                  <h4 className="font-bold text-red-300 mb-1">Danger Zone</h4>
+                  <p className="text-gray-400 mb-3">Deleting this repository will remove its connected index and query mappings.</p>
+                  <button onClick={() => handleDeleteRepository(selectedRepo.id, selectedRepo.name)} className="rounded-lg bg-red-600 text-white px-3 py-1.5 font-bold hover:bg-red-500 transition">
+                    Delete Repository
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="lg:col-span-8 rounded-2xl glass-panel p-12 text-center text-gray-500 border border-white/10">

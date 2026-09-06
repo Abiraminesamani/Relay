@@ -2,6 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { User } from "./AuthPanel";
+import {
+  LayoutDashboard,
+  Bot,
+  FolderGit2,
+  History,
+  Settings,
+  Plus,
+  LogOut,
+  MessageSquare,
+  Zap,
+  ChevronRight,
+} from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
@@ -75,8 +87,8 @@ export default function Sidebar({
         {/* Brand Logo */}
         <div className="flex items-center justify-between px-2 pt-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-500 text-white font-black text-xs shadow-md glow-indigo">
-              ⚡
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-500 text-white shadow-md glow-indigo">
+              <Zap className="w-4 h-4 text-white" />
             </div>
             <span className="text-sm font-black tracking-widest text-white uppercase">RELAY</span>
           </div>
@@ -87,7 +99,7 @@ export default function Sidebar({
           onClick={onNewChat}
           className="w-full rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 px-3.5 py-2.5 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 transition shadow-lg glow-indigo flex items-center justify-center gap-2 active:scale-[0.98]"
         >
-          <span className="text-sm font-bold">+</span>
+          <Plus className="w-4 h-4" />
           <span>New Chat</span>
         </button>
 
@@ -101,7 +113,7 @@ export default function Sidebar({
                 : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200"
             }`}
           >
-            <span className="text-sm">🏠</span>
+            <LayoutDashboard className="w-4 h-4 text-indigo-400" />
             <span>Home</span>
           </button>
 
@@ -113,7 +125,7 @@ export default function Sidebar({
                 : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200"
             }`}
           >
-            <span className="text-sm">💬</span>
+            <Bot className="w-4 h-4 text-purple-400" />
             <span>AI Copilot</span>
           </button>
 
@@ -125,7 +137,7 @@ export default function Sidebar({
                 : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200"
             }`}
           >
-            <span className="text-sm">📁</span>
+            <FolderGit2 className="w-4 h-4 text-cyan-400" />
             <span>Repositories</span>
           </button>
 
@@ -137,7 +149,7 @@ export default function Sidebar({
                 : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200"
             }`}
           >
-            <span className="text-sm">📜</span>
+            <History className="w-4 h-4 text-amber-400" />
             <span>History</span>
           </button>
 
@@ -149,7 +161,7 @@ export default function Sidebar({
                 : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200"
             }`}
           >
-            <span className="text-sm">⚙️</span>
+            <Settings className="w-4 h-4 text-gray-400" />
             <span>Settings</span>
           </button>
         </nav>
@@ -158,7 +170,7 @@ export default function Sidebar({
         <div className="pt-2">
           <div className="flex items-center justify-between px-2 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">
             <span>Recent Chats</span>
-            <span className="text-xs text-gray-600">💬</span>
+            <MessageSquare className="w-3 h-3 text-gray-600" />
           </div>
 
           <div className="space-y-0.5">
@@ -172,7 +184,7 @@ export default function Sidebar({
                 className="w-full text-left rounded-lg px-2.5 py-1.5 text-[11px] text-gray-300 hover:bg-white/[0.04] hover:text-white transition flex items-center justify-between group"
               >
                 <div className="flex items-center gap-2 truncate pr-1">
-                  <span className="text-xs">💬</span>
+                  <MessageSquare className="w-3 h-3 text-gray-500 flex-shrink-0 group-hover:text-indigo-400 transition" />
                   <span className="truncate group-hover:text-indigo-300 transition">{chat.query_text}</span>
                 </div>
                 <span className="text-[9px] text-gray-600 whitespace-nowrap">{formatTimeAgo(chat.created_at)}</span>
@@ -182,9 +194,10 @@ export default function Sidebar({
 
           <button
             onClick={() => onSelectTab("queries")}
-            className="w-full text-left px-2.5 py-1 text-[10px] font-medium text-indigo-400 hover:text-indigo-300 transition mt-1"
+            className="w-full text-left px-2.5 py-1 text-[10px] font-medium text-indigo-400 hover:text-indigo-300 transition mt-1 flex items-center gap-1"
           >
-            + View all chats
+            <span>View all query history</span>
+            <ChevronRight className="w-3 h-3" />
           </button>
         </div>
       </div>
@@ -206,7 +219,7 @@ export default function Sidebar({
           className="rounded-lg p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition"
           title="Sign Out"
         >
-          <span className="text-xs">⏻</span>
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
     </aside>

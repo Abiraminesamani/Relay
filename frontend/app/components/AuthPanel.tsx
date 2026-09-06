@@ -2,6 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import {
+  ShieldCheck,
+  Lock,
+  CheckCircle2,
+  Zap,
+  Cpu,
+  ArrowRight,
+  AlertCircle,
+  Sparkles,
+  Bot,
+  Brain,
+  Workflow,
+  BarChart3,
+  X,
+} from "lucide-react";
 
 declare global {
   interface Window {
@@ -125,11 +140,10 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
     };
   }, []);
 
-  // Handle Google ID Token (from One-Tap)
   async function handleGoogleCredentialResponse(response: any) {
     if (!response?.credential) return;
     setLoading(true);
-    setGoogleStatus("Verifying Google token...");
+    setGoogleStatus("Verifying credentials with Google...");
     setError(null);
     try {
       const res = await fetch(`${API_BASE}/auth/google`, {
@@ -148,7 +162,6 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
     }
   }
 
-  // Handle Google OAuth Access Token (from popup)
   async function handleGoogleTokenResponse(tokenResponse: any) {
     if (tokenResponse?.error) {
       console.warn("Google OAuth token error:", tokenResponse.error);
@@ -159,7 +172,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
     if (!tokenResponse?.access_token) return;
 
     setLoading(true);
-    setGoogleStatus("Authenticating with Google account...");
+    setGoogleStatus("Authenticating Google session...");
     setError(null);
 
     try {
@@ -179,7 +192,6 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
     }
   }
 
-  // Strategy 2: Direct Google OAuth Popup Window
   function openDirectGoogleOAuthPopup() {
     setError(null);
     setGoogleStatus("Opening Google Authorization window...");
@@ -199,7 +211,6 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
     );
 
     if (!popup || popup.closed || typeof popup.closed === "undefined") {
-      // Popups are blocked by browser settings - open fallback modal
       setGoogleStatus(null);
       setIsGoogleModalOpen(true);
     } else {
@@ -207,11 +218,9 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
     }
   }
 
-  // Main Google click trigger
   function handleGoogleButtonClick() {
     setError(null);
 
-    // 1. Try GIS Token Client if initialized
     if (tokenClientRef.current) {
       try {
         setGoogleStatus("Opening Google account selector...");
@@ -222,7 +231,6 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
       }
     }
 
-    // 2. Try window.google.accounts.oauth2 if newly available
     if (window.google?.accounts?.oauth2) {
       try {
         const client = window.google.accounts.oauth2.initTokenClient({
@@ -239,14 +247,13 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
       }
     }
 
-    // 3. Fallback to direct OAuth popup window
     openDirectGoogleOAuthPopup();
   }
 
   async function handleGoogleDirectAuth(userEmail?: string) {
     const targetEmail = (userEmail || googleCustomEmail || email || "alex.developer@gmail.com").trim();
     if (!targetEmail.includes("@") || !targetEmail.includes(".")) {
-      setError("Please provide a valid Google email address");
+      setError("Please provide a valid email address");
       return;
     }
 
@@ -282,7 +289,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
     setError(null);
 
     if (!email.includes(".") || !email.includes("@")) {
-      setError("Please enter a valid email address with a domain (e.g. alex@gmail.com)");
+      setError("Please enter a valid email address (e.g. alex@company.com)");
       return;
     }
 
@@ -316,16 +323,19 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
     <div className="auth-bg min-h-screen flex flex-col justify-between p-6 lg:p-12 text-gray-100">
       {/* Top Brand Nav */}
       <header className="flex items-center justify-between max-w-7xl w-full mx-auto">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white font-black text-sm shadow-lg glow-indigo">
-            ⚡
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white shadow-lg glow-indigo">
+            <Zap className="w-5 h-5 text-white" />
           </div>
-          <span className="text-base font-black tracking-widest text-white uppercase">RELAY</span>
+          <div className="flex flex-col">
+            <span className="text-base font-black tracking-wider text-white uppercase">RELAY</span>
+            <span className="text-[10px] text-gray-400 font-medium tracking-wide">ENGINEERING COPILOT</span>
+          </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 rounded-full bg-white/[0.04] border border-white/10 px-3.5 py-1 text-xs text-gray-400 backdrop-blur-md">
-          <span className="text-indigo-400">🛡️</span>
-          <span>Engineering Intelligence Platform</span>
+        <div className="hidden sm:flex items-center gap-2 rounded-full bg-white/[0.04] border border-white/10 px-4 py-1.5 text-xs text-gray-300 backdrop-blur-md">
+          <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+          <span className="font-medium">Enterprise Intelligence Platform</span>
         </div>
       </header>
 
@@ -334,46 +344,56 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
         {/* Left Hero Section */}
         <div className="lg:col-span-7 space-y-6">
           <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 text-xs text-indigo-300 font-medium">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Multi-Agent AI for Modern Software Teams</span>
+            </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
-              Your{" "}
+              Next-Generation{" "}
               <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                AI Copilot
-              </span>{" "}
-              <br />
-              for Engineering Excellence
+                AI Engineering Intelligence
+              </span>
             </h1>
             <p className="text-sm sm:text-base text-gray-400 max-w-xl leading-relaxed">
-              Relay understands your codebase, automates pull request reviews, diagnoses CI/CD failures, and helps your team ship high-quality software faster.
+              Relay indexes your repositories, automates code review pipelines, correlates CI/CD failures, and provides deep semantic codebase reasoning.
             </p>
           </div>
 
           {/* Feature Chips */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-lg">
-            <div className="flex items-center gap-2.5 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200">
-              <span className="text-indigo-400 text-sm">🤖</span>
+            <div className="flex items-center gap-3 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200 border border-white/10">
+              <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+                <Bot className="w-4 h-4" />
+              </div>
               <span className="font-medium">Multi-Agent AI Assistance</span>
             </div>
-            <div className="flex items-center gap-2.5 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200">
-              <span className="text-purple-400 text-sm">🧠</span>
-              <span className="font-medium">Deep Code Understanding</span>
+            <div className="flex items-center gap-3 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200 border border-white/10">
+              <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400">
+                <Brain className="w-4 h-4" />
+              </div>
+              <span className="font-medium">Deep Code & AST Retrieval</span>
             </div>
-            <div className="flex items-center gap-2.5 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200">
-              <span className="text-amber-400 text-sm">⚙️</span>
-              <span className="font-medium">CI/CD Intelligence</span>
+            <div className="flex items-center gap-3 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200 border border-white/10">
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+                <Workflow className="w-4 h-4" />
+              </div>
+              <span className="font-medium">CI/CD Failure Correlation</span>
             </div>
-            <div className="flex items-center gap-2.5 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200">
-              <span className="text-emerald-400 text-sm">📊</span>
-              <span className="font-medium">Real-time Insights</span>
+            <div className="flex items-center gap-3 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200 border border-white/10">
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+                <BarChart3 className="w-4 h-4" />
+              </div>
+              <span className="font-medium">Real-Time Repository Insights</span>
             </div>
           </div>
 
-          {/* 3D Robot Illustration */}
+          {/* 3D Robot Illustration with Pedestal Glow */}
           <div className="relative max-w-md w-full rounded-2xl overflow-hidden glass-panel p-2 shadow-2xl border border-white/10 group">
             <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600/20 via-purple-600/10 to-transparent pointer-events-none rounded-2xl" />
             <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full rounded-xl overflow-hidden bg-black/40">
               <Image
                 src="/ai_robot_avatar.jpg"
-                alt="Relay AI Copilot 3D Robot"
+                alt="Relay AI Engineering Assistant"
                 fill
                 className="object-cover object-center group-hover:scale-105 transition-transform duration-700"
                 priority
@@ -384,16 +404,16 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
           {/* Trust Badges */}
           <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-gray-400">
             <div className="flex items-center gap-1.5">
-              <span className="text-emerald-400 font-bold">✓</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
               <span>SOC 2 Compliant</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-indigo-400">🔒</span>
-              <span>256-bit Encryption</span>
+              <Lock className="w-3.5 h-3.5 text-indigo-400" />
+              <span>256-Bit TLS Encryption</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-purple-400">⚡</span>
-              <span>99.9% Uptime</span>
+              <Cpu className="w-3.5 h-3.5 text-purple-400" />
+              <span>99.9% Production SLA</span>
             </div>
           </div>
         </div>
@@ -411,20 +431,19 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                   {mode === "login" ? "Welcome back" : "Create your account"}
                 </h2>
                 <p className="text-xs text-gray-400">
-                  {mode === "login" ? "Sign in to continue to Relay" : "Join Relay to accelerate your engineering workflow"}
+                  {mode === "login" ? "Sign in to access your engineering workspace" : "Register to accelerate your software delivery"}
                 </p>
               </div>
 
-              {/* Social Logins with Live Google OAuth */}
+              {/* Social Logins */}
               <div className="space-y-2.5">
                 <button
                   type="button"
                   id="google-signin-btn"
                   onClick={handleGoogleButtonClick}
                   disabled={loading}
-                  className="w-full rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 px-4 py-3 text-xs font-semibold text-white transition flex items-center justify-center gap-3 active:scale-[0.98] shadow-md hover:border-indigo-400/60 group"
+                  className="w-full rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 px-4 py-2.5 text-xs font-semibold text-white transition flex items-center justify-center gap-3 active:scale-[0.98] shadow-md hover:border-indigo-400/60"
                 >
-                  {/* Google SVG Logo */}
                   <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
@@ -447,7 +466,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                 </button>
 
                 <div className="flex items-center justify-between text-[11px] text-gray-400 px-1">
-                  <span>Having popups blocked?</span>
+                  <span>Popups blocked?</span>
                   <button
                     type="button"
                     onClick={() => setIsGoogleModalOpen(true)}
@@ -458,10 +477,10 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                 </div>
               </div>
 
-              {/* Status Message */}
+              {/* Status Indicator */}
               {googleStatus && (
-                <div className="flex items-center gap-2 rounded-xl bg-indigo-950/60 border border-indigo-500/40 px-3.5 py-2.5 text-xs text-indigo-300 animate-pulse">
-                  <div className="h-3.5 w-3.5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+                <div className="flex items-center gap-2 rounded-xl bg-indigo-950/60 border border-indigo-500/40 px-3.5 py-2 text-xs text-indigo-300">
+                  <div className="h-3 w-3 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
                   <span>{googleStatus}</span>
                 </div>
               )}
@@ -469,14 +488,15 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
               {/* Divider */}
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-px bg-white/10" />
-                <span className="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">or email</span>
+                <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">or email</span>
                 <div className="flex-1 h-px bg-white/10" />
               </div>
 
               {/* Error Alert */}
               {error && (
-                <div className="rounded-xl bg-red-950/70 border border-red-800/60 p-3 text-xs text-red-300 leading-relaxed shadow-sm">
-                  {error}
+                <div className="flex items-start gap-2 rounded-xl bg-red-950/70 border border-red-800/60 p-3 text-xs text-red-300 leading-relaxed shadow-sm">
+                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
               )}
 
@@ -500,14 +520,14 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
 
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                    Email address
+                    Email Address
                   </label>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="alex@gmail.com"
+                    placeholder="alex@company.com"
                     className="w-full rounded-xl border border-white/10 bg-gray-900/90 px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
                   />
                 </div>
@@ -520,7 +540,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                     {mode === "login" && (
                       <button
                         type="button"
-                        onClick={() => setError("Password reset link has been dispatched to your email address")}
+                        onClick={() => setError("Password reset instructions have been dispatched to your email address")}
                         className="text-[11px] text-indigo-400 hover:text-indigo-300 transition"
                       >
                         Forgot password?
@@ -541,9 +561,10 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 py-3 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 active:scale-[0.99] disabled:opacity-50 transition shadow-lg glow-indigo"
+                  className="w-full mt-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 py-3 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 active:scale-[0.99] disabled:opacity-50 transition shadow-lg glow-indigo flex items-center justify-center gap-2"
                 >
-                  {loading ? "Processing..." : mode === "login" ? "Sign In" : "Register Account"}
+                  <span>{loading ? "Processing..." : mode === "login" ? "Sign In to Relay" : "Create Account"}</span>
+                  {!loading && <ArrowRight className="w-3.5 h-3.5" />}
                 </button>
               </form>
 
@@ -560,7 +581,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                   {mode === "login" ? (
                     <>
                       Don&apos;t have an account?{" "}
-                      <span className="text-indigo-400 font-semibold hover:underline">Create account</span>
+                      <span className="text-indigo-400 font-semibold hover:underline">Create an account</span>
                     </>
                   ) : (
                     <>
@@ -581,19 +602,19 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
           <div className="w-full max-w-md rounded-2xl glass-panel-deep p-6 border border-white/15 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <div className="flex items-center gap-2">
-                <span className="text-lg">🌐</span>
+                <ShieldCheck className="w-4 h-4 text-indigo-400" />
                 <h3 className="text-sm font-bold text-white">Google OAuth Authentication</h3>
               </div>
               <button
                 onClick={() => setIsGoogleModalOpen(false)}
-                className="text-gray-400 hover:text-white text-xs"
+                className="text-gray-400 hover:text-white p-1 rounded-lg transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <p className="text-xs text-gray-300">
-              Choose your preferred method to authenticate with Google:
+              Select your preferred authentication method:
             </p>
 
             <div className="space-y-3 pt-1">
@@ -602,26 +623,26 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                 onClick={openDirectGoogleOAuthPopup}
                 className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-2.5 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 shadow-md glow-indigo transition flex items-center justify-center gap-2"
               >
-                <span>🌐</span>
+                <Zap className="w-3.5 h-3.5" />
                 <span>Open Google OAuth Consent Window</span>
               </button>
 
               <div className="flex items-center gap-2 my-2">
                 <div className="flex-1 h-px bg-white/10" />
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider">or sign in with email</span>
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider">or direct email authorization</span>
                 <div className="flex-1 h-px bg-white/10" />
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                  Google / Gmail Account Email
+                  Google Workspace / Gmail Address
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="email"
                     value={googleCustomEmail}
                     onChange={(e) => setGoogleCustomEmail(e.target.value)}
-                    placeholder="your.email@gmail.com"
+                    placeholder="alex.developer@gmail.com"
                     className="flex-1 rounded-xl border border-white/10 bg-gray-900 px-3.5 py-2 text-xs text-white placeholder-gray-500 outline-none focus:border-indigo-500"
                   />
                   <button
@@ -642,12 +663,8 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                   disabled={loading}
                   className="w-full rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/10 py-2 text-xs font-semibold text-gray-300 hover:text-white transition"
                 >
-                  ⚡ One-Click Google Sandbox Sign-in (alex.developer@gmail.com)
+                  Developer Sandbox Demo (alex.developer@gmail.com)
                 </button>
-              </div>
-
-              <div className="pt-2 border-t border-white/5 text-[10px] text-gray-500 leading-relaxed">
-                💡 <strong>Google Client ID:</strong> <code className="text-indigo-400 font-mono text-[9px] break-all">{GOOGLE_CLIENT_ID}</code>
               </div>
             </div>
           </div>

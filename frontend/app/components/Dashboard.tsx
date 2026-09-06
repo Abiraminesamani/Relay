@@ -7,6 +7,18 @@ import HomeOverview from "./HomeOverview";
 import ChatPanel from "./ChatPanel";
 import RepositoryManager, { Repository } from "./RepositoryManager";
 import QueryHistory from "./QueryHistory";
+import {
+  LayoutDashboard,
+  Bot,
+  FolderGit2,
+  History,
+  Settings,
+  ShieldCheck,
+  Cpu,
+  Layers,
+  Zap,
+  Lock,
+} from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
@@ -61,7 +73,7 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-[#07080c] text-gray-100 flex flex-row selection:bg-indigo-600 selection:text-white">
-      {/* Left Collapsible Navigation Sidebar (Screen 3 style) */}
+      {/* Left Collapsible Navigation Sidebar */}
       <Sidebar
         user={user}
         token={token}
@@ -89,46 +101,46 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
           <nav className="hidden md:flex items-center gap-1 rounded-xl bg-white/[0.04] p-1 border border-white/5 text-xs font-semibold">
             <button
               onClick={() => setActiveTab("home")}
-              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-2 ${
                 activeTab === "home"
                   ? "bg-indigo-600 text-white shadow-sm glow-indigo"
                   : "text-gray-400 hover:text-gray-200"
               }`}
             >
-              <span>🏠</span>
+              <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Home</span>
             </button>
             <button
               onClick={() => setActiveTab("chat")}
-              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-2 ${
                 activeTab === "chat"
                   ? "bg-indigo-600 text-white shadow-sm glow-indigo"
                   : "text-gray-400 hover:text-gray-200"
               }`}
             >
-              <span>💬</span>
+              <Bot className="w-3.5 h-3.5" />
               <span>AI Copilot</span>
             </button>
             <button
               onClick={() => setActiveTab("repos")}
-              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-2 ${
                 activeTab === "repos"
                   ? "bg-indigo-600 text-white shadow-sm glow-indigo"
                   : "text-gray-400 hover:text-gray-200"
               }`}
             >
-              <span>📁</span>
+              <FolderGit2 className="w-3.5 h-3.5" />
               <span>Repositories</span>
             </button>
             <button
               onClick={() => setActiveTab("queries")}
-              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-2 ${
                 activeTab === "queries"
                   ? "bg-indigo-600 text-white shadow-sm glow-indigo"
                   : "text-gray-400 hover:text-gray-200"
               }`}
             >
-              <span>📜</span>
+              <History className="w-3.5 h-3.5" />
               <span>History</span>
             </button>
           </nav>
@@ -183,24 +195,39 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
 
           {activeTab === "settings" && (
             <div className="max-w-3xl mx-auto rounded-2xl glass-panel p-6 border border-white/10 space-y-6">
-              <h2 className="text-xl font-bold text-white">Platform Settings</h2>
+              <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+                <Settings className="w-5 h-5 text-indigo-400" />
+                <h2 className="text-xl font-bold text-white">Platform Settings</h2>
+              </div>
 
               <div className="space-y-4 text-xs">
                 <div className="p-4 rounded-xl glass-card border border-white/10 space-y-2">
-                  <h3 className="font-bold text-white text-sm">Account & Security</h3>
+                  <div className="flex items-center gap-2 font-bold text-white text-sm">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Account & Security</span>
+                  </div>
                   <p className="text-gray-400">Signed in as {user.name} ({user.email})</p>
-                  <div className="text-emerald-400 text-[11px] font-semibold">✓ JWT Token Authenticated</div>
+                  <div className="text-emerald-400 text-[11px] font-semibold flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    <span>JWT Session Authenticated</span>
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-xl glass-card border border-white/10 space-y-2">
-                  <h3 className="font-bold text-white text-sm">Multi-Agent RAG Engine</h3>
+                  <div className="flex items-center gap-2 font-bold text-white text-sm">
+                    <Cpu className="w-4 h-4 text-purple-400" />
+                    <span>Multi-Agent RAG Engine</span>
+                  </div>
                   <p className="text-gray-400">ChromaDB Vector Store: Active</p>
                   <p className="text-gray-400">Embedding Engine: 128-dim FastCodeEmbeddingFunction</p>
                   <p className="text-gray-400">LLM Provider: OpenRouter (gpt-4o-mini)</p>
                 </div>
 
                 <div className="p-4 rounded-xl glass-card border border-white/10 space-y-2">
-                  <h3 className="font-bold text-white text-sm">Active Repository</h3>
+                  <div className="flex items-center gap-2 font-bold text-white text-sm">
+                    <FolderGit2 className="w-4 h-4 text-indigo-400" />
+                    <span>Active Repository Scope</span>
+                  </div>
                   <p className="text-gray-400">{selectedRepoUrl || "Default configured repository in .env"}</p>
                 </div>
               </div>

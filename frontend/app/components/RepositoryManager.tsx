@@ -1,6 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  FolderGit2,
+  Plus,
+  Search,
+  Star,
+  GitFork,
+  AlertCircle,
+  GitPullRequest,
+  Zap,
+  ExternalLink,
+  MessageSquare,
+  Trash2,
+  X,
+  CheckCircle2,
+  Activity,
+  Layers,
+  ShieldCheck,
+  ChevronRight,
+  Code2,
+} from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
@@ -25,7 +45,6 @@ type MonthlyActivity = {
 };
 
 type ActivityEvent = {
-  icon: string;
   title: string;
   desc: string;
   time: string;
@@ -250,7 +269,6 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
   const selectedRepo = repositories.find((r) => r.id === selectedRepoId) || repositories[0];
   const isIndexing = selectedRepo ? indexingId === selectedRepo.id : false;
 
-  // Language calculations for SVG Donut
   const languages = analytics?.languages || [
     { name: "Python", bytes: 4500, percentage: 45.0, color: "#3b82f6" },
     { name: "TypeScript", bytes: 2500, percentage: 25.0, color: "#8b5cf6" },
@@ -266,28 +284,30 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
         <div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Repositories</h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            Manage and analyze your connected repositories
+            Manage and analyze your connected codebase repositories
           </p>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 px-4 py-2.5 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 transition shadow-lg glow-indigo flex items-center gap-1.5 self-start sm:self-auto"
+          className="rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 px-4 py-2.5 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 transition shadow-lg glow-indigo flex items-center gap-2 self-start sm:self-auto"
         >
-          <span className="text-sm font-bold">+</span>
+          <Plus className="w-4 h-4" />
           <span>Add Repository</span>
         </button>
       </div>
 
       {/* Alerts */}
       {error && (
-        <div className="rounded-xl bg-red-950/70 border border-red-800/60 p-3 text-xs text-red-300">
-          {error}
+        <div className="flex items-center gap-2 rounded-xl bg-red-950/70 border border-red-800/60 p-3 text-xs text-red-300">
+          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <span>{error}</span>
         </div>
       )}
       {success && (
-        <div className="rounded-xl bg-emerald-950/70 border border-emerald-800/60 p-3 text-xs text-emerald-300">
-          {success}
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-950/70 border border-emerald-800/60 p-3 text-xs text-emerald-300">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <span>{success}</span>
         </div>
       )}
 
@@ -297,7 +317,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
         <div className="lg:col-span-4 rounded-2xl glass-panel p-4 border border-white/10 space-y-3 h-[calc(100vh-230px)] flex flex-col">
           {/* Search Input */}
           <div className="flex items-center gap-2 rounded-xl bg-gray-900/90 border border-white/10 px-3 py-2 text-xs">
-            <span className="text-gray-500">🔍</span>
+            <Search className="w-3.5 h-3.5 text-gray-500" />
             <input
               type="text"
               value={searchQuery}
@@ -313,7 +333,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
               <div className="text-center py-8 text-xs text-gray-500">Loading repositories...</div>
             ) : filteredRepos.length === 0 ? (
               <div className="text-center py-8 text-xs text-gray-500">
-                No repositories found. Click &quot;+ Add Repository&quot; to connect one.
+                No repositories found. Click &quot;Add Repository&quot; to connect one.
               </div>
             ) : (
               filteredRepos.map((repo) => {
@@ -339,7 +359,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                             : "bg-gray-800/80 text-gray-400"
                         }`}
                       >
-                        📁
+                        <FolderGit2 className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0">
                         <div className="font-bold text-white truncate">{repo.name}</div>
@@ -369,8 +389,8 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
             {/* Repo Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/5">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white font-bold shadow-md glow-indigo text-base">
-                  📁
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white font-bold shadow-md glow-indigo">
+                  <FolderGit2 className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -399,7 +419,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                     </>
                   ) : (
                     <>
-                      <span>⚡</span>
+                      <Zap className="w-3.5 h-3.5" />
                       <span>Index RAG ({analytics?.chunks_indexed || 0}c)</span>
                     </>
                   )}
@@ -409,27 +429,28 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                   href={selectedRepo.repo_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-gray-300 hover:bg-white/[0.08] hover:text-white transition flex items-center gap-1"
+                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-gray-300 hover:bg-white/[0.08] hover:text-white transition flex items-center gap-1.5"
                 >
-                  <span>Open in GitHub</span>
-                  <span>↗</span>
+                  <span>GitHub</span>
+                  <ExternalLink className="w-3 h-3 text-gray-400" />
                 </a>
 
                 {onSelectRepoForChat && (
                   <button
                     onClick={() => onSelectRepoForChat(selectedRepo.name, selectedRepo.repo_url)}
-                    className="rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition shadow-sm glow-indigo"
+                    className="rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition shadow-sm glow-indigo flex items-center gap-1.5"
                   >
-                    💬 Chat
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Chat</span>
                   </button>
                 )}
 
                 <button
                   onClick={() => handleDeleteRepository(selectedRepo.id, selectedRepo.name)}
-                  className="rounded-xl border border-red-500/20 bg-red-950/20 px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-950/60 hover:text-red-200 transition"
+                  className="rounded-xl border border-red-500/20 bg-red-950/20 p-2 text-xs text-red-400 hover:bg-red-950/60 hover:text-red-200 transition"
                   title="Delete Repository"
                 >
-                  🗑
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -459,16 +480,16 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                   <div className="rounded-xl glass-card p-3.5 border border-white/10">
                     <div className="flex items-center justify-between text-[11px] text-gray-400">
                       <span>Stars</span>
-                      <span className="text-amber-400">★</span>
+                      <Star className="w-3.5 h-3.5 text-amber-400" />
                     </div>
                     <div className="text-xl font-bold text-white mt-1">{analytics?.stars ?? 0}</div>
-                    <div className="text-[10px] text-emerald-400 mt-0.5">GitHub repository</div>
+                    <div className="text-[10px] text-emerald-400 mt-0.5">GitHub stars</div>
                   </div>
 
                   <div className="rounded-xl glass-card p-3.5 border border-white/10">
                     <div className="flex items-center justify-between text-[11px] text-gray-400">
                       <span>Forks</span>
-                      <span className="text-indigo-400">⑂</span>
+                      <GitFork className="w-3.5 h-3.5 text-indigo-400" />
                     </div>
                     <div className="text-xl font-bold text-white mt-1">{analytics?.forks ?? 0}</div>
                     <div className="text-[10px] text-emerald-400 mt-0.5">Community forks</div>
@@ -477,7 +498,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                   <div className="rounded-xl glass-card p-3.5 border border-white/10">
                     <div className="flex items-center justify-between text-[11px] text-gray-400">
                       <span>Issues</span>
-                      <span className="text-amber-400">⚠️</span>
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
                     </div>
                     <div className="text-xl font-bold text-white mt-1">{analytics?.open_issues ?? 0}</div>
                     <div className="text-[10px] text-gray-400 mt-0.5">open issues</div>
@@ -486,7 +507,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                   <div className="rounded-xl glass-card p-3.5 border border-white/10">
                     <div className="flex items-center justify-between text-[11px] text-gray-400">
                       <span>Pull Requests</span>
-                      <span className="text-purple-400">↗</span>
+                      <GitPullRequest className="w-3.5 h-3.5 text-purple-400" />
                     </div>
                     <div className="text-xl font-bold text-white mt-1">{analytics?.total_prs_count ?? 0}</div>
                     <div className="text-[10px] text-gray-400 mt-0.5">{analytics?.open_prs_count ?? 0} open</div>
@@ -500,7 +521,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold text-white">Activity Overview</span>
                       <span className="text-[10px] text-gray-400 bg-white/[0.04] px-2 py-0.5 rounded border border-white/5">
-                        Last 6 months ▼
+                        Last 6 months
                       </span>
                     </div>
 
@@ -632,8 +653,9 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                         </span>
                       </div>
                       {pr.html_url && (
-                        <a href={pr.html_url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline text-xs">
-                          View on GitHub ↗
+                        <a href={pr.html_url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline text-xs flex items-center gap-1">
+                          <span>View on GitHub</span>
+                          <ExternalLink className="w-3 h-3" />
                         </a>
                       )}
                     </div>
@@ -681,8 +703,8 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
           <div className="w-full max-w-md rounded-2xl glass-panel-deep p-6 border border-white/10 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white">Add New Repository</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white text-sm">
-                ✕
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white p-1 rounded-lg">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -726,9 +748,10 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500 disabled:opacity-50 transition shadow-md glow-indigo"
+                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500 disabled:opacity-50 transition shadow-md glow-indigo flex items-center gap-1.5"
                 >
-                  {submitting ? "Connecting..." : "+ Connect Repository"}
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{submitting ? "Connecting..." : "Connect Repository"}</span>
                 </button>
               </div>
             </form>

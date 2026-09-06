@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.routes.architecture import router as architecture_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.code import router as code_router
 from app.api.routes.github import router as github_router
@@ -55,6 +56,7 @@ def health():
     return {"status": "ok"}
 
 
+app.include_router(architecture_router)
 app.include_router(auth_router)
 app.include_router(code_router)
 app.include_router(integrations_router)

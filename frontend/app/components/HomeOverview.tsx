@@ -74,7 +74,7 @@ type HomeOverviewProps = {
   activeRepoName: string;
   activeRepoUrl: string;
   onLaunchCopilotQuery: (query: string, agentType?: string) => void;
-  onNavigateToTab: (tab: "home" | "chat" | "repos" | "queries" | "settings") => void;
+  onNavigateToTab: (tab: "home" | "chat" | "code" | "architecture" | "repos" | "integrations" | "queries" | "settings") => void;
 };
 
 const QUICK_ACTIONS = [

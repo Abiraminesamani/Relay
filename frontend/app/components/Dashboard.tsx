@@ -9,6 +9,7 @@ import CodeExplorer from "./CodeExplorer";
 import RepositoryManager, { Repository } from "./RepositoryManager";
 import IntegrationsPanel from "./IntegrationsPanel";
 import QueryHistory from "./QueryHistory";
+import ArchitectureVisualizer from "./ArchitectureVisualizer";
 import {
   LayoutDashboard,
   Bot,
@@ -22,6 +23,7 @@ import {
   Lock,
   Code2,
   Webhook,
+  Network,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
@@ -34,7 +36,7 @@ type DashboardProps = {
 
 export default function Dashboard({ token, user, onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<
-    "home" | "chat" | "code" | "repos" | "integrations" | "queries" | "settings"
+    "home" | "chat" | "code" | "architecture" | "repos" | "integrations" | "queries" | "settings"
   >("home");
   const [prefillQuery, setPrefillQuery] = useState<string>("");
   const [selectedRepoUrl, setSelectedRepoUrl] = useState<string>("");
@@ -105,6 +107,8 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
                 ? "AI Copilot"
                 : activeTab === "code"
                 ? "Code Explorer"
+                : activeTab === "architecture"
+                ? "Architecture & ERD"
                 : activeTab === "repos"
                 ? "Repositories"
                 : activeTab === "integrations"
@@ -147,6 +151,17 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
             >
               <Code2 className="w-3.5 h-3.5 text-emerald-400" />
               <span>Code</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("architecture")}
+              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
+                activeTab === "architecture"
+                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
+                  : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              <Network className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Architecture</span>
             </button>
             <button
               onClick={() => setActiveTab("repos")}
@@ -229,6 +244,17 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
             <CodeExplorer
               token={token}
               initialRepoId={activeRepoId}
+              onSendToChat={(query) => {
+                setPrefillQuery(query);
+                setActiveTab("chat");
+              }}
+            />
+          )}
+
+          {activeTab === "architecture" && (
+            <ArchitectureVisualizer
+              token={token}
+              repoId={activeRepoId}
               onSendToChat={(query) => {
                 setPrefillQuery(query);
                 setActiveTab("chat");

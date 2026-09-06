@@ -801,11 +801,13 @@ export default function ArchitectureVisualizer({
 
                         {onSendToChat && (
                           <button
-                            onClick={() =>
+                            onClick={() => {
+                              const inDeg = selectedNode.in_degree;
+                              const outDeg = selectedNode.out_degree;
                               onSendToChat(
-                                `Provide a detailed architectural review of module '${selectedNode.name}' (${selectedNode.path}), its dependencies, and refactoring recommendations in repository '${graphData?.repository_name}'.`
-                              )
-                            }
+                                `Provide a detailed architectural review and code analysis for module '${selectedNode.name}' (${selectedNode.path}) in repository '${graphData?.repository_name}'.\n\nArchitectural Metrics:\n- Layer Category: ${selectedNode.category}\n- In-degree (Upstream Callers): ${inDeg}\n- Out-degree (Dependencies): ${outDeg}\n\nExplain its architectural role, how it interacts with other services, and recommendations for test coverage and modularity.`
+                              );
+                            }}
                             className="w-full py-2 px-3 rounded-xl bg-white/[0.05] border border-white/10 hover:bg-white/10 text-gray-300 font-semibold text-xs transition flex items-center justify-center gap-2"
                           >
                             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
@@ -929,11 +931,18 @@ export default function ArchitectureVisualizer({
 
                       {onSendToChat && (
                         <button
-                          onClick={() =>
+                          onClick={() => {
+                            const directDeps = impactData.direct_dependents.join(", ") || "None";
+                            const indirectDeps = impactData.indirect_dependents.join(", ") || "None";
+                            const epSummary =
+                              impactData.impacted_endpoints
+                                .map((e) => `${e.method} ${e.path} (${e.handler})`)
+                                .join("; ") || "None";
+
                             onSendToChat(
-                              `Simulate impact of modifying '${impactData.target_file}' in repository '${graphData?.repository_name}'. What unit test suites and API endpoints must be validated? Risk score is ${impactData.risk_score} (${impactData.risk_level}).`
-                            )
-                          }
+                              `Generate a comprehensive blast radius impact mitigation and regression testing plan for modifying '${impactData.target_file}' in repository '${graphData?.repository_name}'.\n\nImpact Assessment:\n- Risk Score: ${impactData.risk_score}/100 (${impactData.risk_level})\n- Direct Dependents: ${directDeps}\n- Indirect Ripple Dependents: ${indirectDeps}\n- Impacted Endpoints: ${epSummary}\n- Safety Guardrail: ${impactData.ai_recommendation}\n\nOutline the specific regression test suites, unit tests, and API integration checks required before merging changes.`
+                            );
+                          }}
                           className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs hover:from-indigo-500 hover:to-purple-500 transition shadow-md flex items-center justify-center gap-2"
                         >
                           <Sparkles className="w-4 h-4" />
@@ -1142,11 +1151,28 @@ export default function ArchitectureVisualizer({
 
                       {onSendToChat && (
                         <button
-                          onClick={() =>
+                          onClick={() => {
+                            const colSummary = selectedTableObj.columns
+                              .map(
+                                (c) =>
+                                  `${c.name} (${c.type}${c.primary_key ? ", PK" : ""}${
+                                    c.foreign_key ? `, FK -> ${c.foreign_key}` : ""
+                                  }${c.unique ? ", UNIQUE" : ""}${c.nullable ? "" : ", NOT NULL"})`
+                              )
+                              .join(", ");
+                            const relSummary = schemaData?.relationships
+                              .filter(
+                                (r) =>
+                                  r.from_table === selectedTableObj.name ||
+                                  r.to_table === selectedTableObj.name
+                              )
+                              .map((r) => `${r.from_table}.${r.from_column} -> ${r.to_table}.${r.to_column}`)
+                              .join("; ");
+
                             onSendToChat(
-                              `Explain the database schema, indexing strategy, and relationships for table '${selectedTableObj.name}' in repository '${graphData?.repository_name}'.`
-                            )
-                          }
+                              `Analyze and explain the database table '${selectedTableObj.name}' in repository '${graphData?.repository_name}'.\n\nSchema Details:\n- Columns: ${colSummary}\n- Primary Keys: ${selectedTableObj.primary_keys.join(", ") || "None"}\n- Foreign Keys: ${selectedTableObj.foreign_keys.join(", ") || "None"}\n- Relationships: ${relSummary || "None"}\n\nProvide an architectural overview, indexing recommendations, foreign key query optimization tips, and potential schema evolution suggestions.`
+                            );
+                          }}
                           className="px-3.5 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:bg-white/10 text-gray-200 text-xs font-semibold transition flex items-center gap-2 self-start sm:self-auto"
                         >
                           <Sparkles className="w-3.5 h-3.5 text-emerald-400" />

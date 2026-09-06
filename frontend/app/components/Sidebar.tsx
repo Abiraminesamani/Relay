@@ -23,7 +23,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 type QueryItem = {
   id: number;
   query_text: string;
-  created_at: string;
+  asked_at?: string;
+  created_at?: string;
 };
 
 type SidebarProps = {
@@ -36,11 +37,18 @@ type SidebarProps = {
   onLogout: () => void;
 };
 
-function formatTimeAgo(isoString: string): string {
+function formatTimeAgo(isoString?: string | null): string {
+  if (!isoString) return "recent";
   try {
-    const d = new Date(isoString);
+    const formatted =
+      typeof isoString === "string" && !isoString.includes("T") && isoString.includes(" ")
+        ? isoString.replace(" ", "T") + "Z"
+        : isoString;
+    const d = new Date(formatted);
+    if (isNaN(d.getTime())) return "recent";
     const now = new Date();
     const diffSec = Math.floor((now.getTime() - d.getTime()) / 1000);
+    if (isNaN(diffSec) || diffSec < 0) return "just now";
     if (diffSec < 60) return "just now";
     if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
     if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
@@ -75,11 +83,11 @@ export default function Sidebar({
       .catch(() => {});
   }, [token, activeTab]);
 
-  const defaultRecent = [
-    { id: 1, query_text: "Why did the latest CI/CD workflow pipeline fail?", created_at: new Date(Date.now() - 120000).toISOString() },
-    { id: 2, query_text: "Explain the backend architecture and service layer in this repo", created_at: new Date(Date.now() - 3600000).toISOString() },
-    { id: 3, query_text: "Review the latest open pull request diff and suggest fixes", created_at: new Date(Date.now() - 10800000).toISOString() },
-    { id: 4, query_text: "Run a security scan on this repository for hardcoded secrets and flaws", created_at: new Date(Date.now() - 86400000).toISOString() },
+  const defaultRecent: QueryItem[] = [
+    { id: 1, query_text: "Why did the latest CI/CD workflow pipeline fail?", asked_at: new Date(Date.now() - 120000).toISOString() },
+    { id: 2, query_text: "Explain the backend architecture and service layer in this repo", asked_at: new Date(Date.now() - 3600000).toISOString() },
+    { id: 3, query_text: "Review the latest open pull request diff and suggest fixes", asked_at: new Date(Date.now() - 10800000).toISOString() },
+    { id: 4, query_text: "Run a security scan on this repository for hardcoded secrets and flaws", asked_at: new Date(Date.now() - 86400000).toISOString() },
   ];
 
   const displayQueries = recentQueries.length > 0 ? recentQueries : defaultRecent;
@@ -226,7 +234,7 @@ export default function Sidebar({
                   <MessageSquare className="w-3 h-3 text-gray-500 flex-shrink-0 group-hover:text-indigo-400 transition" />
                   <span className="truncate group-hover:text-indigo-300 transition">{chat.query_text}</span>
                 </div>
-                <span className="text-[9px] text-gray-600 whitespace-nowrap">{formatTimeAgo(chat.created_at)}</span>
+                <span className="text-[9px] text-gray-600 whitespace-nowrap">{formatTimeAgo(chat.asked_at || chat.created_at)}</span>
               </button>
             ))}
           </div>

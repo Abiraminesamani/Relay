@@ -109,26 +109,26 @@ async def stream_route_query(
 
     request = AgentRequest(query_text=cleaned_query, repository_url=repository_url)
 
-    yield {"type": "step", "step": "🧠 Analyzing query semantics and user intent..."}
+    yield {"type": "step", "step": "Analyzing query semantics and intent..."}
     await asyncio.sleep(0.05)
 
     # Determine target agent
     if agent_type == "pr_review" or (not agent_type and pr_review_agent.can_handle(request)):
         target_agent = pr_review_agent
-        yield {"type": "step", "step": "🔍 Directing to PR Review Agent for code diff inspection"}
-        yield {"type": "step", "step": "📄 Fetching pull request files and patches via GitHub API..."}
+        yield {"type": "step", "step": "Directing to PR Review Agent for code diff inspection"}
+        yield {"type": "step", "step": "Fetching pull request files and patches via GitHub API..."}
     elif agent_type == "ci" or (not agent_type and ci_agent.can_handle(request)):
         target_agent = ci_agent
-        yield {"type": "step", "step": "⚙️ Directing to CI/CD Agent for Actions failure analysis"}
-        yield {"type": "step", "step": "📊 Fetching workflow runs, job logs, and failure traces..."}
+        yield {"type": "step", "step": "Directing to CI/CD Agent for Actions failure analysis"}
+        yield {"type": "step", "step": "Fetching workflow runs, job logs, and failure traces..."}
     elif agent_type == "github" or (not agent_type and github_agent.can_handle(request)):
         target_agent = github_agent
-        yield {"type": "step", "step": "🐙 Directing to GitHub Agent for metadata & branch lookup"}
-        yield {"type": "step", "step": "🌐 Fetching repository overview, commits, and pull requests..."}
+        yield {"type": "step", "step": "Directing to GitHub Agent for metadata & branch lookup"}
+        yield {"type": "step", "step": "Fetching repository overview, commits, and pull requests..."}
     else:
         target_agent = code_agent
-        yield {"type": "step", "step": "⚡ Directing to Code / RAG Agent for semantic analysis"}
-        yield {"type": "step", "step": "📂 Querying ChromaDB vector collections and code AST..."}
+        yield {"type": "step", "step": "Directing to Code / RAG Agent for semantic analysis"}
+        yield {"type": "step", "step": "Querying ChromaDB vector collections and code AST..."}
 
     await asyncio.sleep(0.05)
 
@@ -139,7 +139,7 @@ async def stream_route_query(
         yield {"type": "error", "message": f"Agent execution encountered an error: {exc}"}
         return
 
-    yield {"type": "step", "step": f"✨ Synthesizing grounded response ({agent_result.agent_name})"}
+    yield {"type": "step", "step": f"Synthesizing grounded response ({agent_result.agent_name})"}
     await asyncio.sleep(0.05)
 
     # Stream the tokens in chunks

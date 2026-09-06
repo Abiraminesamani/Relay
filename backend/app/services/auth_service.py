@@ -71,7 +71,14 @@ def authenticate_with_google(db: Session, payload: GoogleAuthRequest) -> AuthRes
                 if res.status_code == 200:
                     user_info = res.json()
                     email = user_info.get("email")
-                    name = user_info.get("name")
+                    name = user_info.get("name") or user_info.get("given_name")
+                else:
+                    # Fallback to tokeninfo endpoint
+                    t_res = client.get(f"https://oauth2.googleapis.com/tokeninfo?access_token={payload.access_token}")
+                    if t_res.status_code == 200:
+                        t_info = t_res.json()
+                        email = t_info.get("email")
+                        name = t_info.get("name")
         except Exception as exc:
             logger.exception("Google userinfo request failed: %s", exc)
 

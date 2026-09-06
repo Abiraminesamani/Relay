@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Network,
   Layers,
@@ -23,6 +23,12 @@ import {
   RefreshCw,
   Info,
   CheckCircle2,
+  FolderGit2,
+  Maximize2,
+  Minimize2,
+  Compass,
+  Boxes,
+  Hand,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
@@ -103,18 +109,24 @@ type DBSchemaData = {
   relationships: RelationshipSchema[];
 };
 
+type RepositoryItem = {
+  id: number;
+  name: string;
+  repo_url: string;
+};
+
 type ArchitectureVisualizerProps = {
   token: string;
   repoId?: number | null;
   onSendToChat?: (query: string) => void;
 };
 
-const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; dot: string; label: string }> = {
-  route: { bg: "bg-blue-950/40", border: "border-blue-500/40", text: "text-blue-400", dot: "bg-blue-400", label: "Routes" },
-  service: { bg: "bg-emerald-950/40", border: "border-emerald-500/40", text: "text-emerald-400", dot: "bg-emerald-400", label: "Services" },
-  agent: { bg: "bg-purple-950/40", border: "border-purple-500/40", text: "text-purple-400", dot: "bg-purple-400", label: "Agents" },
-  model: { bg: "bg-amber-950/40", border: "border-amber-500/40", text: "text-amber-400", dot: "bg-amber-400", label: "Models & DB" },
-  core: { bg: "bg-cyan-950/40", border: "border-cyan-500/40", text: "text-cyan-400", dot: "bg-cyan-400", label: "Core Engine" },
+const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; dot: string; label: string; icon: any }> = {
+  route: { bg: "bg-blue-950/50", border: "border-blue-500/40", text: "text-blue-400", dot: "bg-blue-400", label: "Routes & API", icon: Compass },
+  service: { bg: "bg-emerald-950/50", border: "border-emerald-500/40", text: "text-emerald-400", dot: "bg-emerald-400", label: "Services Layer", icon: Cpu },
+  agent: { bg: "bg-purple-950/50", border: "border-purple-500/40", text: "text-purple-400", dot: "bg-purple-400", label: "Agents & RAG", icon: Sparkles },
+  model: { bg: "bg-amber-950/50", border: "border-amber-500/40", text: "text-amber-400", dot: "bg-amber-400", label: "Models & DB", icon: Database },
+  core: { bg: "bg-cyan-950/50", border: "border-cyan-500/40", text: "text-cyan-400", dot: "bg-cyan-400", label: "Core & Config", icon: Boxes },
 };
 
 const LAYER_ORDER = ["route", "service", "agent", "model", "core"];
@@ -125,30 +137,64 @@ export default function ArchitectureVisualizer({
   onSendToChat,
 }: ArchitectureVisualizerProps) {
   const [activeView, setActiveView] = useState<"graph" | "impact" | "schema">("graph");
+  const [repositories, setRepositories] = useState<RepositoryItem[]>([]);
+  const [selectedRepoId, setSelectedRepoId] = useState<number>(repoId || 1);
+
   const [graphData, setGraphData] = useState<DependencyGraphData | null>(null);
   const [impactData, setImpactData] = useState<ImpactAnalysisData | null>(null);
   const [schemaData, setSchemaData] = useState<DBSchemaData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [impactLoading, setImpactLoading] = useState<boolean>(false);
 
-  // Graph state
-  const [selectedNodeId, setSelectedNodeId] = useState<string>("db/models.py");
+  // Graph canvas state
+  const [selectedNodeId, setSelectedNodeId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [zoomLevel, setZoomLevel] = useState<number>(0.85);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // ERD state
   const [selectedTable, setSelectedTable] = useState<string>("repositories");
   const [tableSearch, setTableSearch] = useState<string>("");
 
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+
+  // 1. Fetch available repositories
   useEffect(() => {
-    fetchArchitectureData();
+    fetch(`${API_BASE}/repositories`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: RepositoryItem[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setRepositories(data);
+          if (!repoId) {
+            setSelectedRepoId(data[0].id);
+          }
+        }
+      })
+      .catch(() => {});
   }, [token, repoId]);
 
-  async function fetchArchitectureData() {
+  // Sync if repoId prop changes
+  useEffect(() => {
+    if (repoId) {
+      setSelectedRepoId(repoId);
+    }
+  }, [repoId]);
+
+  // 2. Fetch architecture data for selected repository
+  useEffect(() => {
+    if (!token) return;
+    fetchArchitectureData(selectedRepoId);
+  }, [token, selectedRepoId]);
+
+  async function fetchArchitectureData(targetRepoId: number) {
     setLoading(true);
     try {
-      const targetRepoId = repoId || 1;
       const [graphRes, schemaRes] = await Promise.all([
         fetch(`${API_BASE}/architecture/graph?repository_id=${targetRepoId}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -161,6 +207,10 @@ export default function ArchitectureVisualizer({
       if (graphRes.ok) {
         const gData: DependencyGraphData = await graphRes.json();
         setGraphData(gData);
+        if (gData.nodes.length > 0) {
+          const defaultNode = gData.nodes.find((n) => n.category === "model" || n.category === "service") || gData.nodes[0];
+          setSelectedNodeId(defaultNode.id);
+        }
       }
       if (schemaRes.ok) {
         const sData: DBSchemaData = await schemaRes.json();
@@ -174,12 +224,12 @@ export default function ArchitectureVisualizer({
   }
 
   async function fetchImpactAnalysis(filePath: string) {
+    if (!filePath || !token) return;
     setSelectedNodeId(filePath);
     setImpactLoading(true);
     try {
-      const targetRepoId = repoId || 1;
       const res = await fetch(
-        `${API_BASE}/architecture/impact?repository_id=${targetRepoId}&file_path=${encodeURIComponent(filePath)}`,
+        `${API_BASE}/architecture/impact?repository_id=${selectedRepoId}&file_path=${encodeURIComponent(filePath)}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.ok) {
@@ -193,14 +243,14 @@ export default function ArchitectureVisualizer({
     }
   }
 
-  // Trigger impact analysis when selectedNodeId changes or when switching to impact tab
+  // Trigger impact analysis when selectedNodeId changes
   useEffect(() => {
     if (selectedNodeId && token) {
       fetchImpactAnalysis(selectedNodeId);
     }
-  }, [selectedNodeId, token]);
+  }, [selectedNodeId, selectedRepoId, token]);
 
-  // Compute node coordinates grouped by layers
+  // Compute node coordinates grouped by 5 distinct layer columns
   const layoutNodes = useMemo(() => {
     if (!graphData) return [];
 
@@ -213,23 +263,23 @@ export default function ArchitectureVisualizer({
       return matchCat && matchSearch;
     });
 
-    // Group nodes by layer
     const layerMap: Record<string, DependencyNode[]> = {};
     LAYER_ORDER.forEach((layer) => {
       layerMap[layer] = filtered.filter((n) => n.category === layer);
     });
 
     const positionedNodes: (DependencyNode & { x: number; y: number })[] = [];
-    const colSpacing = 260;
-    const rowSpacing = 90;
+    const colSpacing = 240;
+    const rowSpacing = 82;
+    const startX = 30;
+    const startY = 75;
 
     LAYER_ORDER.forEach((layer, colIndex) => {
       const nodesInLayer = layerMap[layer] || [];
-      const startY = 80;
       nodesInLayer.forEach((n, rowIndex) => {
         positionedNodes.push({
           ...n,
-          x: 60 + colIndex * colSpacing,
+          x: startX + colIndex * colSpacing,
           y: startY + rowIndex * rowSpacing,
         });
       });
@@ -237,6 +287,14 @@ export default function ArchitectureVisualizer({
 
     return positionedNodes;
   }, [graphData, categoryFilter, searchQuery]);
+
+  // Compute max canvas bounds
+  const canvasBounds = useMemo(() => {
+    if (layoutNodes.length === 0) return { width: 1250, height: 600 };
+    const maxX = Math.max(...layoutNodes.map((n) => n.x + 210), 1250);
+    const maxY = Math.max(...layoutNodes.map((n) => n.y + 90), 600);
+    return { width: maxX + 50, height: maxY + 60 };
+  }, [layoutNodes]);
 
   // Get visible edges
   const visibleEdges = useMemo(() => {
@@ -263,77 +321,132 @@ export default function ArchitectureVisualizer({
     return schemaData?.tables.find((t) => t.name === selectedTable) || schemaData?.tables[0] || null;
   }, [schemaData, selectedTable]);
 
+  // Mouse pan handlers
+  function handleMouseDown(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest(".interactive-node")) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+  }
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (!isDragging) return;
+    setPanOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y,
+    });
+  }
+
+  function handleMouseUp() {
+    setIsDragging(false);
+  }
+
+  function handleFitToView() {
+    if (canvasContainerRef.current) {
+      const containerWidth = canvasContainerRef.current.clientWidth;
+      const fitZoom = Math.min(1.0, Math.max(0.55, (containerWidth - 40) / canvasBounds.width));
+      setZoomLevel(fitZoom);
+      setPanOffset({ x: 0, y: 0 });
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Top Header & View Mode Switcher */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-5 rounded-2xl border border-white/10">
-        <div>
+    <div className={`space-y-6 ${isFullscreen ? "fixed inset-0 z-50 bg-[#07080d] p-6 overflow-auto" : ""}`}>
+      {/* Top Header & Multi-Repo Switcher */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 glass-panel p-5 rounded-2xl border border-white/10">
+        <div className="space-y-1">
           <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
             <Network className="w-4 h-4" />
             <span>Interactive Architecture & Dependency Visualizer</span>
           </div>
-          <h1 className="text-2xl font-black text-white mt-1">System Architecture & ERD Explorer</h1>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Visualize module dependency topologies, compute blast radius impact maps, and explore database entity relationships.
+          <h1 className="text-2xl font-black text-white">System Topology & Impact Analysis</h1>
+          <p className="text-xs text-gray-400">
+            Select any connected repository to inspect its AST module graph, blast radius risk score, and relational ERD.
           </p>
         </div>
 
-        {/* View Switcher Tabs */}
-        <div className="flex items-center gap-1.5 bg-black/40 p-1.5 rounded-xl border border-white/5 self-start md:self-auto">
-          <button
-            onClick={() => setActiveView("graph")}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
-              activeView === "graph"
-                ? "bg-indigo-600 text-white shadow-lg glow-indigo"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <Network className="w-4 h-4 text-indigo-300" />
-            <span>Module Graph</span>
-          </button>
+        {/* Action Controls & Multi-Repo Selector */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Repository Selector Dropdown */}
+          <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-xl border border-white/15">
+            <FolderGit2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+            <select
+              value={selectedRepoId}
+              onChange={(e) => setSelectedRepoId(Number(e.target.value))}
+              className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer pr-2"
+            >
+              {repositories.length > 0 ? (
+                repositories.map((r) => (
+                  <option key={r.id} value={r.id} className="bg-[#0b0d14] text-gray-200">
+                    {r.name}
+                  </option>
+                ))
+              ) : (
+                <option value={1} className="bg-[#0b0d14] text-gray-200">
+                  Relay
+                </option>
+              )}
+            </select>
+          </div>
 
-          <button
-            onClick={() => setActiveView("impact")}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
-              activeView === "impact"
-                ? "bg-indigo-600 text-white shadow-lg glow-indigo"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <AlertTriangle className="w-4 h-4 text-amber-300" />
-            <span>Impact Analysis</span>
-          </button>
+          {/* View Switcher Tabs */}
+          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
+            <button
+              onClick={() => setActiveView("graph")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                activeView === "graph"
+                  ? "bg-indigo-600 text-white shadow-lg glow-indigo"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Network className="w-3.5 h-3.5 text-indigo-300" />
+              <span>Module Graph</span>
+            </button>
 
-          <button
-            onClick={() => setActiveView("schema")}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
-              activeView === "schema"
-                ? "bg-indigo-600 text-white shadow-lg glow-indigo"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <Database className="w-4 h-4 text-emerald-300" />
-            <span>Database Schema (ERD)</span>
-          </button>
+            <button
+              onClick={() => setActiveView("impact")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                activeView === "impact"
+                  ? "bg-indigo-600 text-white shadow-lg glow-indigo"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
+              <span>Impact Map</span>
+            </button>
+
+            <button
+              onClick={() => setActiveView("schema")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                activeView === "schema"
+                  ? "bg-indigo-600 text-white shadow-lg glow-indigo"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Database className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Database ERD</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {loading ? (
         <div className="glass-panel p-16 rounded-2xl border border-white/10 flex flex-col items-center justify-center space-y-4">
           <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
-          <p className="text-sm font-semibold text-gray-300">Extracting AST module graph & database schemas...</p>
+          <p className="text-sm font-semibold text-gray-300">
+            Analyzing repository AST dependency trees and schemas...
+          </p>
         </div>
       ) : (
         <>
           {/* VIEW 1: MODULE DEPENDENCY GRAPH */}
           {activeView === "graph" && (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
               {/* Canvas Controls & SVG Graph */}
-              <div className="lg:col-span-3 space-y-4">
+              <div className="xl:col-span-3 space-y-3">
                 {/* Graph Tool Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 glass-card p-3 rounded-xl border border-white/10">
+                <div className="flex flex-wrap items-center justify-between gap-3 glass-card p-2.5 rounded-xl border border-white/10">
                   {/* Search Bar */}
-                  <div className="relative min-w-[200px] flex-1 max-w-xs">
+                  <div className="relative min-w-[180px] flex-1 max-w-xs">
                     <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
@@ -345,7 +458,7 @@ export default function ArchitectureVisualizer({
                   </div>
 
                   {/* Category Filter Pills */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto text-[11px]">
+                  <div className="flex items-center gap-1 overflow-x-auto text-[11px]">
                     <button
                       onClick={() => setCategoryFilter("all")}
                       className={`px-2.5 py-1 rounded-md font-semibold transition ${
@@ -362,7 +475,7 @@ export default function ArchitectureVisualizer({
                         <button
                           key={cat}
                           onClick={() => setCategoryFilter(cat)}
-                          className={`px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1.5 ${
+                          className={`px-2 py-1 rounded-md font-semibold transition flex items-center gap-1 ${
                             categoryFilter === cat
                               ? `${meta.bg} ${meta.text} border ${meta.border}`
                               : "text-gray-400 hover:text-gray-200"
@@ -375,72 +488,112 @@ export default function ArchitectureVisualizer({
                     })}
                   </div>
 
-                  {/* Zoom Controls */}
+                  {/* Zoom & Canvas Actions */}
                   <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/10">
                     <button
-                      onClick={() => setZoomLevel((z) => Math.min(1.5, z + 0.1))}
+                      onClick={() => setZoomLevel((z) => Math.min(1.4, z + 0.1))}
                       className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
                       title="Zoom In"
                     >
                       <ZoomIn className="w-3.5 h-3.5" />
                     </button>
-                    <span className="text-[10px] font-mono text-gray-400 px-1">{Math.round(zoomLevel * 100)}%</span>
+                    <span className="text-[10px] font-mono text-gray-300 px-1">{Math.round(zoomLevel * 100)}%</span>
                     <button
-                      onClick={() => setZoomLevel((z) => Math.max(0.6, z - 0.1))}
+                      onClick={() => setZoomLevel((z) => Math.max(0.5, z - 0.1))}
                       className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
                       title="Zoom Out"
                     >
                       <ZoomOut className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => setZoomLevel(1)}
+                      onClick={handleFitToView}
+                      className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 hover:bg-white/20 text-gray-200"
+                      title="Fit all 5 layers into screen"
+                    >
+                      Fit All
+                    </button>
+                    <button
+                      onClick={() => {
+                        setZoomLevel(0.85);
+                        setPanOffset({ x: 0, y: 0 });
+                      }}
                       className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
-                      title="Reset Zoom"
+                      title="Reset View"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setIsFullscreen(!isFullscreen)}
+                      className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
+                      title={isFullscreen ? "Exit Fullscreen" : "Fullscreen View"}
+                    >
+                      {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 </div>
 
-                {/* SVG Visual Canvas */}
-                <div className="relative glass-panel rounded-2xl border border-white/10 p-4 h-[640px] overflow-auto bg-[#07080d] flex items-center justify-center">
+                {/* SVG Visual Canvas with Drag-to-Pan */}
+                <div
+                  ref={canvasContainerRef}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  className={`relative glass-panel rounded-2xl border border-white/10 overflow-hidden bg-[#07080d] select-none ${
+                    isDragging ? "cursor-grabbing" : "cursor-grab"
+                  } ${isFullscreen ? "h-[82vh]" : "h-[620px]"}`}
+                >
+                  {/* Floating Pan/Drag Instruction Pill */}
+                  <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/70 px-2.5 py-1 rounded-full border border-white/10 text-[10px] text-gray-400 pointer-events-none backdrop-blur-md">
+                    <Hand className="w-3 h-3 text-indigo-400" />
+                    <span>Drag canvas to pan · Scroll to zoom</span>
+                  </div>
+
+                  {/* Scalable & Pannable Canvas World */}
                   <div
                     style={{
-                      transform: `scale(${zoomLevel})`,
+                      transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`,
                       transformOrigin: "top left",
-                      minWidth: "1400px",
-                      minHeight: "680px",
+                      width: `${canvasBounds.width}px`,
+                      height: `${canvasBounds.height}px`,
                       position: "relative",
+                      transition: isDragging ? "none" : "transform 0.1s ease-out",
                     }}
                   >
-                    {/* Layer Header Labels */}
-                    <div className="absolute top-2 left-0 right-0 flex gap-[70px] pl-16 pointer-events-none">
-                      {LAYER_ORDER.map((layer) => {
-                        const meta = CATEGORY_COLORS[layer];
-                        return (
-                          <div key={layer} className="w-[190px] text-center">
-                            <span
-                              className={`text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border ${meta.bg} ${meta.border} ${meta.text}`}
-                            >
-                              {meta.label} Layer
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    {/* Layer Header Labels (Positioned exactly over each layer column) */}
+                    {LAYER_ORDER.map((layer, colIndex) => {
+                      const meta = CATEGORY_COLORS[layer];
+                      const IconComp = meta.icon;
+                      const colX = 30 + colIndex * 240;
+                      return (
+                        <div
+                          key={layer}
+                          style={{
+                            position: "absolute",
+                            left: `${colX}px`,
+                            top: "16px",
+                            width: "200px",
+                          }}
+                          className={`text-center py-1.5 px-2 rounded-xl border flex items-center justify-center gap-1.5 shadow-md ${meta.bg} ${meta.border} ${meta.text}`}
+                        >
+                          <IconComp className="w-3.5 h-3.5" />
+                          <span className="text-[11px] font-black uppercase tracking-wider">{meta.label}</span>
+                        </div>
+                      );
+                    })}
 
                     {/* SVG Connector Lines / Curves */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
                       <defs>
                         <marker
-                          id="arrowhead"
+                          id="arrowhead-default"
                           markerWidth="8"
                           markerHeight="6"
                           refX="7"
                           refY="3"
                           orient="auto"
                         >
-                          <polygon points="0 0, 8 3, 0 6" fill="#6366f1" opacity="0.8" />
+                          <polygon points="0 0, 8 3, 0 6" fill="#4f46e5" opacity="0.8" />
                         </marker>
                         <marker
                           id="arrowhead-highlight"
@@ -462,12 +615,12 @@ export default function ArchitectureVisualizer({
                         const isHighlighted =
                           selectedNodeId === edge.source || selectedNodeId === edge.target;
 
-                        // Calculate connector coordinates
-                        const x1 = sourceNode.x + 190;
-                        const y1 = sourceNode.y + 24;
+                        // Calculate connector coordinates (width of node card is 200px)
+                        const x1 = sourceNode.x + 200;
+                        const y1 = sourceNode.y + 36;
                         const x2 = targetNode.x;
-                        const y2 = targetNode.y + 24;
-                        const dx = Math.abs(x2 - x1) * 0.5;
+                        const y2 = targetNode.y + 36;
+                        const dx = Math.abs(x2 - x1) * 0.45;
 
                         const pathData = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 
@@ -476,11 +629,11 @@ export default function ArchitectureVisualizer({
                             <path
                               d={pathData}
                               fill="none"
-                              stroke={isHighlighted ? "#a855f7" : "#4338ca"}
+                              stroke={isHighlighted ? "#c084fc" : "#4338ca"}
                               strokeWidth={isHighlighted ? 2.5 : 1.2}
                               strokeDasharray={edge.type === "queries" ? "4 4" : "none"}
-                              opacity={isHighlighted ? 1 : 0.4}
-                              markerEnd={isHighlighted ? "url(#arrowhead-highlight)" : "url(#arrowhead)"}
+                              opacity={isHighlighted ? 1 : 0.45}
+                              markerEnd={isHighlighted ? "url(#arrowhead-highlight)" : "url(#arrowhead-default)"}
                             />
                           </g>
                         );
@@ -500,14 +653,15 @@ export default function ArchitectureVisualizer({
                             position: "absolute",
                             left: `${node.x}px`,
                             top: `${node.y}px`,
+                            width: "200px",
                           }}
-                          className={`w-[190px] cursor-pointer rounded-xl p-3 border transition-all duration-200 z-10 select-none shadow-md ${
+                          className={`interactive-node cursor-pointer rounded-xl p-3 border transition-all duration-200 z-10 select-none shadow-md ${
                             isSelected
-                              ? "bg-indigo-950/80 border-indigo-400 ring-2 ring-indigo-500/50 shadow-indigo-500/20 scale-105"
-                              : "bg-[#0d1017]/90 border-white/10 hover:border-white/25 hover:bg-white/[0.04]"
+                              ? "bg-indigo-950/90 border-indigo-400 ring-2 ring-indigo-500/60 shadow-indigo-500/30 scale-105"
+                              : "bg-[#0c0e15]/95 border-white/10 hover:border-white/25 hover:bg-white/[0.04]"
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-1 mb-1.5">
+                          <div className="flex items-center justify-between gap-1 mb-1">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meta.dot}`} />
                               <span className="text-xs font-bold text-white truncate">{node.name}</span>
@@ -519,7 +673,9 @@ export default function ArchitectureVisualizer({
                             </span>
                           </div>
 
-                          <div className="text-[10px] text-gray-500 truncate font-mono mb-2">{node.path}</div>
+                          <div className="text-[10px] text-gray-500 truncate font-mono mb-2" title={node.path}>
+                            {node.path}
+                          </div>
 
                           <div className="flex items-center justify-between text-[10px] text-gray-400 border-t border-white/5 pt-1.5">
                             <span title="In-degree (dependents)">In: {node.in_degree}</span>
@@ -647,7 +803,7 @@ export default function ArchitectureVisualizer({
                           <button
                             onClick={() =>
                               onSendToChat(
-                                `Provide a detailed architectural review of module '${selectedNode.name}' (${selectedNode.path}), its dependencies, and refactoring recommendations.`
+                                `Provide a detailed architectural review of module '${selectedNode.name}' (${selectedNode.path}), its dependencies, and refactoring recommendations in repository '${graphData?.repository_name}'.`
                               )
                             }
                             className="w-full py-2 px-3 rounded-xl bg-white/[0.05] border border-white/10 hover:bg-white/10 text-gray-300 font-semibold text-xs transition flex items-center justify-center gap-2"
@@ -680,7 +836,7 @@ export default function ArchitectureVisualizer({
                   <div>
                     <h3 className="text-sm font-bold text-white">Blast Radius Target File</h3>
                     <p className="text-xs text-gray-400">
-                      Select any file to simulate code modifications and view upstream breaking changes.
+                      Select any file in repository <span className="text-white font-bold">{graphData?.repository_name}</span> to simulate code modifications and view upstream breaking changes.
                     </p>
                   </div>
                 </div>
@@ -689,7 +845,7 @@ export default function ArchitectureVisualizer({
                   <select
                     value={selectedNodeId}
                     onChange={(e) => setSelectedNodeId(e.target.value)}
-                    className="px-3.5 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="px-3.5 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-indigo-500 max-w-[280px] truncate"
                   >
                     {graphData?.nodes.map((n) => (
                       <option key={n.id} value={n.id}>
@@ -701,7 +857,7 @@ export default function ArchitectureVisualizer({
                   <button
                     onClick={() => fetchImpactAnalysis(selectedNodeId)}
                     disabled={impactLoading}
-                    className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5"
+                    className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${impactLoading ? "animate-spin" : ""}`} />
                     <span>Recalculate</span>
@@ -775,7 +931,7 @@ export default function ArchitectureVisualizer({
                         <button
                           onClick={() =>
                             onSendToChat(
-                              `Simulate impact of modifying '${impactData.target_file}'. What unit test suites and API endpoints must be validated? Risk score is ${impactData.risk_score} (${impactData.risk_level}).`
+                              `Simulate impact of modifying '${impactData.target_file}' in repository '${graphData?.repository_name}'. What unit test suites and API endpoints must be validated? Risk score is ${impactData.risk_score} (${impactData.risk_level}).`
                             )
                           }
                           className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs hover:from-indigo-500 hover:to-purple-500 transition shadow-md flex items-center justify-center gap-2"
@@ -917,7 +1073,9 @@ export default function ArchitectureVisualizer({
                   <div className="flex items-center justify-between pb-2 border-b border-white/5">
                     <div className="flex items-center gap-2">
                       <Database className="w-4 h-4 text-emerald-400" />
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">Tables ({schemaData.total_tables})</h3>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                        Tables ({schemaData.total_tables})
+                      </h3>
                     </div>
                   </div>
 
@@ -986,7 +1144,7 @@ export default function ArchitectureVisualizer({
                         <button
                           onClick={() =>
                             onSendToChat(
-                              `Explain the database schema, indexing strategy, and relationships for table '${selectedTableObj.name}' in this application.`
+                              `Explain the database schema, indexing strategy, and relationships for table '${selectedTableObj.name}' in repository '${graphData?.repository_name}'.`
                             )
                           }
                           className="px-3.5 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:bg-white/10 text-gray-200 text-xs font-semibold transition flex items-center gap-2 self-start sm:self-auto"

@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Zap,
   ChevronRight,
+  Code2,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
@@ -26,8 +27,8 @@ type QueryItem = {
 type SidebarProps = {
   user: User;
   token?: string;
-  activeTab: "home" | "chat" | "repos" | "queries" | "settings";
-  onSelectTab: (tab: "home" | "chat" | "repos" | "queries" | "settings") => void;
+  activeTab: "home" | "chat" | "code" | "repos" | "queries" | "settings";
+  onSelectTab: (tab: "home" | "chat" | "code" | "repos" | "queries" | "settings") => void;
   onNewChat: () => void;
   onSelectRecentQuery: (query: string) => void;
   onLogout: () => void;
@@ -127,6 +128,18 @@ export default function Sidebar({
           >
             <Bot className="w-4 h-4 text-purple-400" />
             <span>AI Copilot</span>
+          </button>
+
+          <button
+            onClick={() => onSelectTab("code")}
+            className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+              activeTab === "code"
+                ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-sm"
+                : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200"
+            }`}
+          >
+            <Code2 className="w-4 h-4 text-emerald-400" />
+            <span>Code Explorer</span>
           </button>
 
           <button

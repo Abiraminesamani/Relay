@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes.auth import router as auth_router
+from app.api.routes.code import router as code_router
 from app.api.routes.github import router as github_router
 from app.api.routes.queries import router as queries_router
 from app.api.routes.repositories import router as repositories_router
@@ -54,6 +55,7 @@ def health():
 
 
 app.include_router(auth_router)
+app.include_router(code_router)
 app.include_router(repositories_router)
 app.include_router(queries_router)
 app.include_router(github_router)

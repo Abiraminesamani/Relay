@@ -5,6 +5,7 @@ import { User } from "./AuthPanel";
 import Sidebar from "./Sidebar";
 import HomeOverview from "./HomeOverview";
 import ChatPanel from "./ChatPanel";
+import CodeExplorer from "./CodeExplorer";
 import RepositoryManager, { Repository } from "./RepositoryManager";
 import QueryHistory from "./QueryHistory";
 import {
@@ -18,6 +19,7 @@ import {
   Layers,
   Zap,
   Lock,
+  Code2,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
@@ -29,7 +31,7 @@ type DashboardProps = {
 };
 
 export default function Dashboard({ token, user, onLogout }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState<"home" | "chat" | "repos" | "queries" | "settings">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "chat" | "code" | "repos" | "queries" | "settings">("home");
   const [prefillQuery, setPrefillQuery] = useState<string>("");
   const [selectedRepoUrl, setSelectedRepoUrl] = useState<string>("");
   const [activeRepoName, setActiveRepoName] = useState<string>("");
@@ -93,7 +95,13 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
             <span className="text-gray-500 font-semibold uppercase tracking-wider">Relay</span>
             <span className="text-gray-600">/</span>
             <span className="font-bold text-white capitalize">
-              {activeTab === "home" ? "Overview" : activeTab === "chat" ? "AI Copilot" : activeTab}
+              {activeTab === "home"
+                ? "Overview"
+                : activeTab === "chat"
+                ? "AI Copilot"
+                : activeTab === "code"
+                ? "Code Explorer"
+                : activeTab}
             </span>
           </div>
 
@@ -120,6 +128,17 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
             >
               <Bot className="w-3.5 h-3.5" />
               <span>AI Copilot</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("code")}
+              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-2 ${
+                activeTab === "code"
+                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
+                  : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              <Code2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Code Explorer</span>
             </button>
             <button
               onClick={() => setActiveTab("repos")}
@@ -183,6 +202,17 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
                   setActiveRepoName(match.name);
                   setActiveRepoId(match.id);
                 }
+              }}
+            />
+          )}
+
+          {activeTab === "code" && (
+            <CodeExplorer
+              token={token}
+              initialRepoId={activeRepoId}
+              onSendToChat={(query) => {
+                setPrefillQuery(query);
+                setActiveTab("chat");
               }}
             />
           )}

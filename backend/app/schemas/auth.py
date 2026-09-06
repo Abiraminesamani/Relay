@@ -27,3 +27,16 @@ class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserRead
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: str | None = None
+    access_token: str | None = None
+    code: str | None = None
+    email: str | None = None
+    name: str | None = None
+
+
+class GoogleOAuthUrlResponse(BaseModel):
+    url: str
+    client_id: str

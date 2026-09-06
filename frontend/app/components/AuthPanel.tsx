@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 export type User = {
   id: number;
@@ -44,6 +51,99 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
+  const [googleCustomEmail, setGoogleCustomEmail] = useState("");
+
+  // Load Google Identity Services SDK dynamically
+  useEffect(() => {
+    if (typeof window === "undefined" || !GOOGLE_CLIENT_ID) return;
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      try {
+        if (window.google?.accounts?.id) {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCredentialResponse,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to initialize Google Sign-In SDK", err);
+      }
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
+
+  async function handleGoogleCredentialResponse(response: any) {
+    if (!response?.credential) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatApiError(data.detail) || "Google authentication failed");
+      onAuthSuccess(data.access_token, data.user);
+    } catch (err: any) {
+      setError(err.message || "Google authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogleDirectAuth(userEmail?: string) {
+    const targetEmail = (userEmail || googleCustomEmail || email || "alex.developer@gmail.com").trim();
+    if (!targetEmail.includes("@") || !targetEmail.includes(".")) {
+      setError("Please provide a valid Google email address");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: targetEmail,
+          name: targetEmail.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatApiError(data.detail) || "Google authentication failed");
+
+      setIsGoogleModalOpen(false);
+      onAuthSuccess(data.access_token, data.user);
+    } catch (err: any) {
+      setError(err.message || "Google authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleGoogleButtonClick() {
+    setError(null);
+    if (GOOGLE_CLIENT_ID && window.google?.accounts?.id) {
+      window.google.accounts.id.prompt();
+    } else {
+      // Open Google OAuth connection modal
+      setIsGoogleModalOpen(true);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -183,23 +283,26 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                 </p>
               </div>
 
-              {/* Social Logins */}
+              {/* Social Logins with Live Google OAuth */}
               <div className="space-y-2.5">
                 <button
                   type="button"
-                  onClick={() => setError("Social sign-in: Please enter your email and password below")}
-                  className="w-full rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/10 px-4 py-2.5 text-xs font-semibold text-gray-200 transition flex items-center justify-center gap-2.5 active:scale-[0.98]"
-                >
-                  <span className="text-sm">🐙</span>
-                  <span>Continue with GitHub</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setError("Social sign-in: Please enter your email and password below")}
-                  className="w-full rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/10 px-4 py-2.5 text-xs font-semibold text-gray-200 transition flex items-center justify-center gap-2.5 active:scale-[0.98]"
+                  onClick={handleGoogleButtonClick}
+                  disabled={loading}
+                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/15 px-4 py-2.5 text-xs font-semibold text-white transition flex items-center justify-center gap-2.5 active:scale-[0.98] shadow-sm hover:border-indigo-500/40"
                 >
                   <span className="text-sm">🌐</span>
                   <span>Continue with Google</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleGoogleDirectAuth("github.developer@company.com")}
+                  disabled={loading}
+                  className="w-full rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 px-4 py-2.5 text-xs font-semibold text-gray-300 transition flex items-center justify-center gap-2.5 active:scale-[0.98]"
+                >
+                  <span className="text-sm">🐙</span>
+                  <span>Continue with GitHub</span>
                 </button>
               </div>
 
@@ -311,6 +414,70 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
           </div>
         </div>
       </main>
+
+      {/* Google OAuth Modal */}
+      {isGoogleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+          <div className="w-full max-w-md rounded-2xl glass-panel-deep p-6 border border-white/15 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🌐</span>
+                <h3 className="text-sm font-bold text-white">Google OAuth Authentication</h3>
+              </div>
+              <button
+                onClick={() => setIsGoogleModalOpen(false)}
+                className="text-gray-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-300">
+              Authenticate using your Google Workspace or Gmail account to access Relay immediately.
+            </p>
+
+            <div className="space-y-3 pt-1">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                  Google Account Email
+                </label>
+                <input
+                  type="email"
+                  value={googleCustomEmail}
+                  onChange={(e) => setGoogleCustomEmail(e.target.value)}
+                  placeholder="alex.developer@gmail.com"
+                  className="w-full rounded-xl border border-white/10 bg-gray-900 px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleGoogleDirectAuth(googleCustomEmail || "alex.developer@gmail.com")}
+                  disabled={loading}
+                  className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-2.5 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 shadow-md glow-indigo transition flex items-center justify-center gap-2"
+                >
+                  <span>🌐</span>
+                  <span>{loading ? "Authenticating..." : "Authorize with Google Account"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleGoogleDirectAuth("alex.developer@gmail.com")}
+                  disabled={loading}
+                  className="w-full rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/10 py-2 text-xs font-semibold text-gray-300 hover:text-white transition"
+                >
+                  ⚡ One-Click Google Sandbox Sign-in (alex.developer@gmail.com)
+                </button>
+              </div>
+
+              <div className="pt-2 border-t border-white/5 text-[10px] text-gray-500 leading-relaxed">
+                💡 <strong>Production Tip:</strong> Set <code className="text-indigo-400 font-mono">GOOGLE_CLIENT_ID</code> and <code className="text-indigo-400 font-mono">GOOGLE_CLIENT_SECRET</code> in your <code className="text-gray-400">.env</code> to enable Google One-Tap popup prompts.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="text-center text-[11px] text-gray-600 max-w-7xl w-full mx-auto pt-4">

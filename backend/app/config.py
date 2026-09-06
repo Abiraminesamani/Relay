@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     chroma_persist_dir: str = "./chroma_store"
 
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:3000/auth/callback"
+
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),
         env_file_encoding="utf-8",

@@ -7,6 +7,7 @@ import HomeOverview from "./HomeOverview";
 import ChatPanel from "./ChatPanel";
 import CodeExplorer from "./CodeExplorer";
 import RepositoryManager, { Repository } from "./RepositoryManager";
+import IntegrationsPanel from "./IntegrationsPanel";
 import QueryHistory from "./QueryHistory";
 import {
   LayoutDashboard,
@@ -20,6 +21,7 @@ import {
   Zap,
   Lock,
   Code2,
+  Webhook,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
@@ -31,7 +33,9 @@ type DashboardProps = {
 };
 
 export default function Dashboard({ token, user, onLogout }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState<"home" | "chat" | "code" | "repos" | "queries" | "settings">("home");
+  const [activeTab, setActiveTab] = useState<
+    "home" | "chat" | "code" | "repos" | "integrations" | "queries" | "settings"
+  >("home");
   const [prefillQuery, setPrefillQuery] = useState<string>("");
   const [selectedRepoUrl, setSelectedRepoUrl] = useState<string>("");
   const [activeRepoName, setActiveRepoName] = useState<string>("");
@@ -101,6 +105,10 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
                 ? "AI Copilot"
                 : activeTab === "code"
                 ? "Code Explorer"
+                : activeTab === "repos"
+                ? "Repositories"
+                : activeTab === "integrations"
+                ? "Slack & Discord"
                 : activeTab}
             </span>
           </div>
@@ -109,7 +117,7 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
           <nav className="hidden md:flex items-center gap-1 rounded-xl bg-white/[0.04] p-1 border border-white/5 text-xs font-semibold">
             <button
               onClick={() => setActiveTab("home")}
-              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-2 ${
+              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "home"
                   ? "bg-indigo-600 text-white shadow-sm glow-indigo"
                   : "text-gray-400 hover:text-gray-200"
@@ -120,7 +128,7 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
             </button>
             <button
               onClick={() => setActiveTab("chat")}
-              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-2 ${
+              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "chat"
                   ? "bg-indigo-600 text-white shadow-sm glow-indigo"
                   : "text-gray-400 hover:text-gray-200"
@@ -131,29 +139,40 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
             </button>
             <button
               onClick={() => setActiveTab("code")}
-              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-2 ${
+              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "code"
                   ? "bg-indigo-600 text-white shadow-sm glow-indigo"
                   : "text-gray-400 hover:text-gray-200"
               }`}
             >
               <Code2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Code Explorer</span>
+              <span>Code</span>
             </button>
             <button
               onClick={() => setActiveTab("repos")}
-              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-2 ${
+              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "repos"
                   ? "bg-indigo-600 text-white shadow-sm glow-indigo"
                   : "text-gray-400 hover:text-gray-200"
               }`}
             >
               <FolderGit2 className="w-3.5 h-3.5" />
-              <span>Repositories</span>
+              <span>Repos</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("integrations")}
+              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
+                activeTab === "integrations"
+                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
+                  : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              <Webhook className="w-3.5 h-3.5 text-rose-400" />
+              <span>Webhooks</span>
             </button>
             <button
               onClick={() => setActiveTab("queries")}
-              className={`rounded-lg px-3.5 py-1.5 transition flex items-center gap-2 ${
+              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "queries"
                   ? "bg-indigo-600 text-white shadow-sm glow-indigo"
                   : "text-gray-400 hover:text-gray-200"
@@ -220,6 +239,8 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
           {activeTab === "repos" && (
             <RepositoryManager token={token} onSelectRepoForChat={handleSelectRepoForChat} />
           )}
+
+          {activeTab === "integrations" && <IntegrationsPanel token={token} />}
 
           {activeTab === "queries" && <QueryHistory token={token} />}
 

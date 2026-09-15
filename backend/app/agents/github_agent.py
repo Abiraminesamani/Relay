@@ -20,9 +20,21 @@ class GitHubAgent(RelayAgent):
     def can_handle(self, request: AgentRequest) -> bool:
         text = request.query_text.casefold()
 
-        # Defer PR code review and diff inspection queries to PRReviewAgent
-        if any(action in text for action in ("review", "diff", "suggest fixes", "audit", "inspect")) and any(
-            target in text for target in ("pr", "pull request", "diff", "patch")
+        # Defer PR code review, architecture, mitigation, and schema queries
+        if any(
+            neg in text
+            for neg in (
+                "blast radius",
+                "mitigation plan",
+                "impact mitigation",
+                "regression testing",
+                "database schema",
+                "explain the database",
+                "review",
+                "diff",
+                "slack",
+                "jira",
+            )
         ):
             return False
 

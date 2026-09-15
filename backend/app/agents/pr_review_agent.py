@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 GITHUB_API_URL = "https://api.github.com"
 
 PR_NUMBER_PATTERN = re.compile(
-    r"\b(?:pr|pull\s*request|review)\s*#?(\d+)\b",
+    r"\b(?:pr|pull\s*request|review|diff|patch|code\s*review)\s*(?:on\s*)?#?(\d+)\b",
     re.IGNORECASE,
 )
 
@@ -76,33 +76,56 @@ class PRReviewAgent(RelayAgent):
 
     def can_handle(self, request: AgentRequest) -> bool:
         text = request.query_text.casefold()
-        has_review_action = any(
-            action in text
-            for action in ("review", "audit", "inspect", "check", "diff", "suggest fixes", "suggest", "fixes")
-        )
-        has_pr_target = any(
-            target in text
-            for target in ("pr", "pull request", "pull requests", "diff", "patch")
-        )
-        if has_review_action and has_pr_target:
-            return True
+
+        # Exclude questions about blast radius, mitigation plans, architecture, schema, general queries, or Slack/Jira
         if any(
-            keyword in text
-            for keyword in (
+            neg in text
+            for neg in (
+                "blast radius",
+                "mitigation plan",
+                "impact mitigation",
+                "regression testing",
+                "database schema",
+                "explain the database",
+                "who created",
+                "who are",
+                "who made",
+                "what does",
+                "how does",
+                "slack",
+                "jira",
+            )
+        ):
+            return False
+
+        has_pr_keyword = bool(
+            re.search(r"\b(pr|prs|pull request|pull requests|pr #\d+|pr\s+\d+|code review|review|diff)\b", text)
+        )
+        has_review_action = bool(
+            re.search(r"\b(review|audit|diff|patch|inspect|check diff|changes|conduct)\b", text)
+        )
+
+        if has_pr_keyword and has_review_action:
+            return True
+
+        if any(
+            phrase in text
+            for phrase in (
                 "pr review",
                 "review pr",
+                "review this pr",
                 "pull request review",
                 "review pull request",
                 "diff review",
-                "code review",
                 "review diff",
+                "review latest pr",
+                "code review",
                 "inspect pr",
-                "check pr",
-                "audit pr",
             )
         ):
             return True
-        return PR_NUMBER_PATTERN.search(request.query_text) is not None
+
+        return extract_pr_number(request.query_text) is not None
 
     def handle(self, request: AgentRequest) -> AgentResult:
         response_text = review_pull_request(request.query_text, repository_url=request.repository_url)
@@ -127,7 +150,12 @@ def review_pull_request(question: str, repository_url: str | None = None) -> str
 
         return _render_review_report(question, details)
     except PullRequestNotFoundError:
-        return _build_pr_not_found_message(owner, repo, pr_number)
+        # If no active PR is open, intelligently fallback to general code reasoning
+        try:
+            from app.agents.code_rag_agent import answer_code_question
+            return answer_code_question(question, repository_url=repository_url)
+        except Exception:
+            return _build_pr_not_found_message(owner, repo, pr_number)
     except GitHubRepositoryNotFoundError:
         return f"Repository '{owner}/{repo}' not found. Please confirm the repository URL exists on GitHub."
     except GitHubAuthError:

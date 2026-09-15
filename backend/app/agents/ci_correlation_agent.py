@@ -65,20 +65,56 @@ class CICorrelationAgent(RelayAgent):
 
     def can_handle(self, request: AgentRequest) -> bool:
         text = request.query_text.casefold()
-        keywords = (
-            "build",
-            "workflow",
-            "pipeline",
-            "deploy",
-            "failed",
-            "failure",
-            "ci/cd",
-            "actions",
-            "test failure",
-            "run #",
+
+        # Exclude questions about author, creation, general questions, blast radius, slack, jira
+        if any(
+            neg in text
+            for neg in (
+                "who built",
+                "who created",
+                "who made",
+                "who invented",
+                "blast radius",
+                "mitigation plan",
+                "impact mitigation",
+                "database schema",
+                "explain the",
+                "slack",
+                "jira",
+            )
+        ):
+            return False
+
+        has_ci_keyword = bool(
+            re.search(r"\b(ci|cd|ci/cd|pipeline|github actions|workflow run|actions run|workflow|build|deploy step)\b", text)
         )
-        if any(keyword in text for keyword in keywords):
+        has_failure_keyword = bool(
+            re.search(r"\b(fail|failed|failure|failing|error|broken|crash|broke|wrong|status|issue)\b", text)
+        )
+
+        if has_ci_keyword and has_failure_keyword:
             return True
+
+        if any(
+            phrase in text
+            for phrase in (
+                "why did the build fail",
+                "why did the workflow fail",
+                "why did the pipeline fail",
+                "what went wrong",
+                "pipeline status",
+                "workflow status",
+                "ci status",
+                "ci failure",
+                "ci failure analysis",
+                "diagnose pipeline",
+                "diagnose build",
+                "investigate failure",
+                "actions failure",
+            )
+        ):
+            return True
+
         return _extract_run_id(request.query_text) is not None
 
     def handle(self, request: AgentRequest) -> AgentResult:
@@ -106,7 +142,11 @@ def investigate_failure(question: str, repository_url: str | None = None) -> str
 
         return _render_failure_report(question, details)
     except WorkflowNotFoundError:
-        return _build_workflow_not_found_message(owner, repo, run_id)
+        try:
+            from app.agents.code_rag_agent import answer_code_question
+            return answer_code_question(question, repository_url=repository_url)
+        except Exception:
+            return _build_workflow_not_found_message(owner, repo, run_id)
     except GitHubRepositoryNotFoundError:
         return f"Repository '{owner}/{repo}' not found. Check repository configuration."
     except GitHubAuthError:

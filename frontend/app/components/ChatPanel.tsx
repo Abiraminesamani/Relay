@@ -22,6 +22,10 @@ import {
   Sparkles,
   Bot,
   Code2,
+  MessageSquare,
+  Kanban,
+  Hash,
+  Share2,
 } from "lucide-react";
 
 type Message = {
@@ -48,7 +52,7 @@ type ChatPanelProps = {
   onSelectRepoUrl?: (url: string) => void;
 };
 
-type AgentType = "auto" | "github" | "ci" | "code" | "pr_review";
+type AgentType = "auto" | "github" | "ci" | "code" | "pr_review" | "slack" | "jira";
 
 const AGENT_CONFIGS: Record<
   string,
@@ -86,14 +90,31 @@ const AGENT_CONFIGS: Record<
     border: "border-rose-500/30",
     desc: "Inspects pull request diffs, code quality, and security risks",
   },
+  "Slack Agent": {
+    label: "Slack Agent",
+    icon: MessageSquare,
+    color: "text-emerald-400",
+    badgeBg: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+    border: "border-emerald-500/30",
+    desc: "Dispatches alerts, channel notifications, Block Kit payloads, and incident summaries",
+  },
+  "Jira Agent": {
+    label: "Jira Agent",
+    icon: Kanban,
+    color: "text-blue-400",
+    badgeBg: "bg-blue-500/10 text-blue-300 border-blue-500/30",
+    border: "border-blue-500/30",
+    desc: "Creates Bug & Task tickets, tracks sprint backlogs, and manages issue priorities",
+  },
 };
 
 const SUGGESTED_PROMPTS = [
+  { agent: "slack", icon: MessageSquare, label: "Slack Incident Alert", query: "Send a Slack incident broadcast to #dev-alerts about high blast radius in smartems-frontend/src/index.js" },
+  { agent: "jira", icon: Kanban, label: "Create Jira Bug Ticket", query: "Create a High Priority Jira Bug ticket for critical regression in login authentication flow" },
   { agent: "ci", icon: Workflow, label: "CI Failure Analysis", query: "Why did the latest CI/CD workflow pipeline fail?" },
   { agent: "pr_review", icon: GitPullRequest, label: "Automated PR Review", query: "Review the latest open pull request diff and suggest fixes" },
   { agent: "code", icon: Layers, label: "Architecture Summary", query: "Explain the backend architecture and service layer in this repo" },
   { agent: "code", icon: ShieldAlert, label: "Security Audit", query: "Run a security scan on this repository for hardcoded secrets and flaws" },
-  { agent: "github", icon: GitBranch, label: "Branches & PRs", query: "Show repository branches, latest commits and pull requests" },
 ];
 
 function formatTimestamp(): string {
@@ -370,7 +391,7 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
           </div>
 
           {/* Agent Pills */}
-          <div className="flex items-center gap-1 rounded-xl bg-white/[0.04] p-1 border border-white/5 text-xs">
+          <div className="flex flex-wrap items-center gap-1 rounded-xl bg-white/[0.04] p-1 border border-white/5 text-xs">
             <button
               onClick={() => setSelectedAgent("auto")}
               className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${
@@ -380,6 +401,28 @@ export default function ChatPanel({ token, prefillQuery, selectedRepoUrl, onSele
               }`}
             >
               Auto-Route
+            </button>
+            <button
+              onClick={() => setSelectedAgent("slack")}
+              className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition flex items-center gap-1.5 ${
+                selectedAgent === "slack"
+                  ? "bg-emerald-600 text-white shadow-sm glow-emerald"
+                  : "text-gray-400 hover:text-emerald-300"
+              }`}
+            >
+              <MessageSquare className="w-3 h-3" />
+              <span>Slack</span>
+            </button>
+            <button
+              onClick={() => setSelectedAgent("jira")}
+              className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition flex items-center gap-1.5 ${
+                selectedAgent === "jira"
+                  ? "bg-blue-600 text-white shadow-sm glow-blue"
+                  : "text-gray-400 hover:text-blue-300"
+              }`}
+            >
+              <Kanban className="w-3 h-3" />
+              <span>Jira</span>
             </button>
             <button
               onClick={() => setSelectedAgent("pr_review")}

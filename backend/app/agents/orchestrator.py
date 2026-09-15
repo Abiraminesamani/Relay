@@ -9,7 +9,9 @@ from app.agents.base import AgentRequest, AgentResult
 from app.agents.ci_correlation_agent import CICorrelationAgent
 from app.agents.code_rag_agent import CodeAgent
 from app.agents.github_agent import GitHubAgent
+from app.agents.jira_agent import JiraAgent
 from app.agents.pr_review_agent import PRReviewAgent
+from app.agents.slack_agent import SlackAgent
 
 
 class OrchestrationState(TypedDict):
@@ -22,14 +24,21 @@ github_agent = GitHubAgent()
 ci_agent = CICorrelationAgent()
 code_agent = CodeAgent()
 pr_review_agent = PRReviewAgent()
+slack_agent = SlackAgent()
+jira_agent = JiraAgent()
 
 
 def _analyze_intent(state: OrchestrationState) -> OrchestrationState:
-    if pr_review_agent.can_handle(state["request"]):
+    req = state["request"]
+    if slack_agent.can_handle(req):
+        state["route"] = "slack"
+    elif jira_agent.can_handle(req):
+        state["route"] = "jira"
+    elif pr_review_agent.can_handle(req):
         state["route"] = "pr_review"
-    elif ci_agent.can_handle(state["request"]):
+    elif ci_agent.can_handle(req):
         state["route"] = "ci"
-    elif github_agent.can_handle(state["request"]):
+    elif github_agent.can_handle(req):
         state["route"] = "github"
     else:
         state["route"] = "code"
@@ -56,6 +65,16 @@ def _run_pr_review_agent(state: OrchestrationState) -> OrchestrationState:
     return state
 
 
+def _run_slack_agent(state: OrchestrationState) -> OrchestrationState:
+    state["result"] = slack_agent.handle(state["request"])
+    return state
+
+
+def _run_jira_agent(state: OrchestrationState) -> OrchestrationState:
+    state["result"] = jira_agent.handle(state["request"])
+    return state
+
+
 def _route(state: OrchestrationState) -> str:
     return state["route"]
 
@@ -66,6 +85,9 @@ graph.add_node("github", _run_github_agent)
 graph.add_node("ci", _run_ci_agent)
 graph.add_node("code", _run_code_agent)
 graph.add_node("pr_review", _run_pr_review_agent)
+graph.add_node("slack", _run_slack_agent)
+graph.add_node("jira", _run_jira_agent)
+
 graph.add_edge(START, "analyze_intent")
 graph.add_conditional_edges(
     "analyze_intent",
@@ -75,12 +97,16 @@ graph.add_conditional_edges(
         "ci": "ci",
         "code": "code",
         "pr_review": "pr_review",
+        "slack": "slack",
+        "jira": "jira",
     },
 )
 graph.add_edge("github", END)
 graph.add_edge("ci", END)
 graph.add_edge("code", END)
 graph.add_edge("pr_review", END)
+graph.add_edge("slack", END)
+graph.add_edge("jira", END)
 orchestrator = graph.compile()
 
 
@@ -89,7 +115,7 @@ def route_query(query_text: str, repository_url: str | None = None) -> AgentResu
     if not request.query_text:
         return AgentResult(
             agent_name="Code Agent",
-            response_text="Please ask a question about your repository, GitHub activity, pull requests, or CI/CD pipeline.",
+            response_text="Please ask a question about your repository, GitHub activity, pull requests, CI/CD pipeline, Slack, or Jira.",
         )
 
     result = orchestrator.invoke({"request": request, "route": "code", "result": None})
@@ -113,7 +139,15 @@ async def stream_route_query(
     await asyncio.sleep(0.05)
 
     # Determine target agent
-    if agent_type == "pr_review" or (not agent_type and pr_review_agent.can_handle(request)):
+    if agent_type == "slack" or (not agent_type and slack_agent.can_handle(request)):
+        target_agent = slack_agent
+        yield {"type": "step", "step": "Directing to Slack Agent for channel dispatch and discussion lookup"}
+        yield {"type": "step", "step": "Formatting Slack Block Kit payload and checking webhook endpoints..."}
+    elif agent_type == "jira" or (not agent_type and jira_agent.can_handle(request)):
+        target_agent = jira_agent
+        yield {"type": "step", "step": "Directing to Jira Agent for issue tracking and sprint management"}
+        yield {"type": "step", "step": "Generating Jira issue schema and synchronizing ticket state..."}
+    elif agent_type == "pr_review" or (not agent_type and pr_review_agent.can_handle(request)):
         target_agent = pr_review_agent
         yield {"type": "step", "step": "Directing to PR Review Agent for code diff inspection"}
         yield {"type": "step", "step": "Fetching pull request files and patches via GitHub API..."}

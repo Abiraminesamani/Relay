@@ -38,7 +38,7 @@ class GitHubAgent(RelayAgent):
         ):
             return False
 
-        # Keywords covering metadata, branches, commits, PRs, creators, and authors
+        # Keywords covering metadata, branches, commits, PRs, creators, contributors, and authors
         keywords = (
             "github",
             "branch",
@@ -52,6 +52,11 @@ class GitHubAgent(RelayAgent):
             "overview",
             "contributor",
             "contributors",
+            "contribute",
+            "contributed",
+            "who contributed",
+            "who is the other",
+            "who else",
             "author",
             "authors",
             "creator",
@@ -60,7 +65,10 @@ class GitHubAgent(RelayAgent):
             "who made",
             "who built",
             "who wrote",
+            "who pushed",
             "who is the owner",
+            "team member",
+            "team members",
             "owner",
             "stats",
             "stars",
@@ -68,6 +76,9 @@ class GitHubAgent(RelayAgent):
             "when was this",
         )
         if any(k in text for k in keywords):
+            return True
+
+        if re.search(r"\b(who|contributors?|authors?|commits?|branches?)\b", text):
             return True
 
         # Check if the query asks about the owner mentioned in repository URL

@@ -375,11 +375,15 @@ def _generate_grounded_answer(question: str, chunks: list[RetrievedChunk]) -> st
         )
 
     prompt = (
-        "You are Relay, a senior staff software engineer and AI architectural copilot.\n"
-        "Answer the repository question thoroughly using the provided context and any architectural/schema metadata included in the user's prompt.\n"
-        "If schema definitions, table columns, foreign keys, or module relations are provided in the question, provide an expert architectural breakdown, schema analysis, indexing strategies, and best practices.\n"
-        "When referencing files from context, cite the relevant file paths.\n\n"
-        f"Question:\n{question}\n\n"
+        "You are Relay, an expert AI Software Engineering & Architecture Copilot.\n"
+        "Answer the user's question directly, clearly, and with high engineering precision based on the provided repository context.\n"
+        "Guidelines:\n"
+        "- Answer ONLY what the user asked. Keep the response structured, clear, and easy to read with Markdown headings and bullet points.\n"
+        "- When explaining code, authentication, or architecture, describe the components, flow, functions, and key design patterns clearly.\n"
+        "- If the requested file or language belongs to a different framework (e.g. Python vs Java), clarify what exists in the repository context and explain the equivalent files.\n"
+        "- Cite relevant file paths from the repository context.\n"
+        "- Do not append generic boilerplate or unrelated database indexing strategies unless explicitly requested.\n\n"
+        f"User Question:\n{question}\n\n"
         "Repository Context:\n"
         + "\n\n---\n\n".join(context_sections)
     )
@@ -512,18 +516,17 @@ def _is_repository_list_question(question: str) -> bool:
 def _is_security_question(question: str) -> bool:
     normalized = question.casefold()
     markers = (
-        "security",
-        "vulnerab",
-        "secure",
-        "hardcoded",
-        "token",
-        "password",
-        "jwt",
-        "auth",
-        "authorization",
-        "authentication",
-        "owasp",
-        "scan this repository",
+        "security scan",
+        "security audit",
+        "security review",
+        "vulnerability scan",
+        "find vulnerabilities",
+        "check for hardcoded secrets",
+        "hardcoded secrets",
+        "check secrets",
+        "owasp scan",
+        "security flaw",
+        "scan this repository for flaws",
     )
     return any(marker in normalized for marker in markers)
 

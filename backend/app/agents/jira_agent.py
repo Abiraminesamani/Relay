@@ -50,35 +50,96 @@ def process_jira_request(question: str, repository_url: str | None = None) -> st
     repo_name = repository_url.split("/")[-1].replace(".git", "") if repository_url else "Relay"
     project_key = repo_name[:4].upper() if len(repo_name) >= 4 else "RELAY"
 
-    # 1. Action: Create Jira Ticket
-    if any(k in text_lower for k in ["create", "open", "file", "new ticket", "new issue", "add ticket", "make a ticket"]):
+    # 1. Action: Create / Generate Jira Ticket or Story
+    is_create = any(
+        k in text_lower
+        for k in [
+            "create",
+            "generate",
+            "draft",
+            "open",
+            "file",
+            "new ticket",
+            "new issue",
+            "add ticket",
+            "make a ticket",
+            "user story",
+            "jira story",
+            "jira bug",
+            "jira task",
+            "jira epic",
+        ]
+    )
+    if is_create:
         # Determine Issue Type
         issue_type = "Task"
-        if "bug" in text_lower or "fix" in text_lower or "defect" in text_lower or "fail" in text_lower or "error" in text_lower:
+        if any(w in text_lower for w in ["bug", "defect", "fail", "error", "crash", "regression", "broken"]):
             issue_type = "Bug"
-        elif "story" in text_lower or "feature" in text_lower:
+        elif any(w in text_lower for w in ["story", "user story", "feature"]):
             issue_type = "Story"
         elif "epic" in text_lower:
             issue_type = "Epic"
-        elif "mitigation" in text_lower or "security" in text_lower:
+        elif any(w in text_lower for w in ["mitigation", "refactor", "security"]):
             issue_type = "Task"
 
-        # Determine Priority
-        priority = "High" if "high" in text_lower or "critical" in text_lower or "severe" in text_lower else "Medium"
-        if "highest" in text_lower or "blocker" in text_lower:
+        # Determine Priority using exact word boundaries
+        if re.search(r"\b(highest|blocker|p0|p1)\b", text_lower):
             priority = "Highest"
-        elif "low" in text_lower or "minor" in text_lower:
+        elif re.search(r"\b(high|critical|severe|urgent)\b", text_lower):
+            priority = "High"
+        elif re.search(r"\b(low|minor|trivial|p4)\b", text_lower):
             priority = "Low"
+        else:
+            priority = "Medium"
 
         ticket_number = random.randint(101, 899)
         ticket_key = f"{project_key}-{ticket_number}"
 
-        # Extract or synthesize summary
-        summary = question.replace("create", "").replace("jira", "").replace("ticket", "").replace("for", "").strip().capitalize()
-        if len(summary) < 10:
-            summary = f"Engineering action item for {repo_name}"
+        # Clean extract summary using regex
+        cleaned_summary = re.sub(
+            r"(?i)^(create|generate|draft|file|open|add|make)\s+(a\s+)?(high\s+|low\s+|medium\s+|highest\s+)?(priority\s+)?(jira\s+)?(bug\s+|task\s+|user\s+story\s+|story\s+|epic\s+|ticket\s+|issue\s+)*(for\s+|to\s+|about\s+)?",
+            "",
+            question.strip(),
+        ).strip()
+        summary = cleaned_summary[:120].strip() if cleaned_summary else f"Engineering item for {repo_name}"
 
         timestamp_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        # Tailored description based on issue type
+        if issue_type == "Story":
+            description_block = (
+                f"**User Story**:\n"
+                f"- **As a**: Registered User / Developer\n"
+                f"- **I want to**: {summary}\n"
+                f"- **So that**: The application maintains robust security, scalability, and user satisfaction.\n\n"
+                f"**Acceptance Criteria**:\n"
+                f"1. Implement UI workflows and state management for {summary}.\n"
+                f"2. Integrate backend validation and security verification.\n"
+                f"3. Add unit and end-to-end integration tests.\n"
+                f"4. Verify zero regression across dependent modules."
+            )
+        elif issue_type == "Bug":
+            description_block = (
+                f"**Bug Report Details**:\n"
+                f"- **Issue**: {summary}\n"
+                f"- **Context**: Detected in repository `{repo_name}`.\n"
+                f"- **Impact**: High regression risk in affected authentication/core services.\n\n"
+                f"**Steps to Reproduce & Resolve**:\n"
+                f"1. Reproduce failure using integration test suite.\n"
+                f"2. Apply fix in target controllers/services.\n"
+                f"3. Run automated regression checks and verify fix.\n"
+                f"4. Submit PR linked to `{ticket_key}`."
+            )
+        else:
+            description_block = (
+                f"**Task Overview**:\n"
+                f"- **Objective**: {summary}\n"
+                f"- **Repository**: `{repo_name}`\n\n"
+                f"**Tasks & Acceptance Criteria**:\n"
+                f"1. Implement required architectural and logic changes in `{repo_name}`.\n"
+                f"2. Execute unit tests and AST impact validation.\n"
+                f"3. Submit pull request with linked ticket key `[{ticket_key}]`."
+            )
 
         return (
             f"### Jira Issue Created Successfully\n\n"
@@ -92,24 +153,16 @@ def process_jira_request(question: str, repository_url: str | None = None) -> st
             f"| **Project** | `{project_key} ({repo_name})` |\n"
             f"| **Created At** | `{timestamp_str}` |\n\n"
             f"#### Issue Summary\n"
-            f"> **{summary[:120]}**\n\n"
-            f"#### Generated Description & Acceptance Criteria\n"
-            f"```text\n"
-            f"Overview:\n"
-            f"- Triggered via Relay AI Copilot in repository context: {repo_name}\n"
-            f"- Original Request: {question[:180]}\n\n"
-            f"Tasks & Acceptance Criteria:\n"
-            f"1. Investigate and implement required code changes in {repo_name}.\n"
-            f"2. Execute regression test suites and AST impact validation.\n"
-            f"3. Submit pull request with linked ticket key [{ticket_key}].\n"
-            f"```\n\n"
+            f"> **{summary}**\n\n"
+            f"#### Generated Specification & Acceptance Criteria\n"
+            f"{description_block}\n\n"
             f"**Next Steps**:\n"
             f"- You can reference this ticket in git commit messages: `git commit -m \"fix: [{ticket_key}] ...\"`\n"
             f"- Track status changes directly in your Jira workspace."
         )
 
     # 2. Action: Search / List Sprint Tickets
-    if any(k in text_lower for k in ["sprint", "list", "show", "search", "open", "backlog", "status", "tickets", "issues"]):
+    if any(k in text_lower for k in ["sprint", "list", "show", "search", "backlog", "status", "tickets", "issues"]):
         return (
             f"### Active Sprint Board ({project_key} Sprint 4)\n\n"
             f"| Issue Key | Type | Summary | Priority | Status | Assignee |\n"

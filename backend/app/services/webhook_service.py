@@ -271,6 +271,8 @@ def test_webhook_service(
 def broadcast_event_service(
     db: Session, current_user: User, payload: BroadcastEventRequest
 ) -> dict[str, Any]:
+    from app.db.models import Repository
+
     query = db.query(WebhookSubscription).filter(
         WebhookSubscription.user_id == current_user.id,
         WebhookSubscription.is_active == True,
@@ -283,8 +285,10 @@ def broadcast_event_service(
 
     subscriptions = query.all()
     results = []
+    dispatched_urls = set()
 
     for sub in subscriptions:
+        dispatched_urls.add(sub.webhook_url.strip())
         if sub.service_type == "discord":
             success, code, _ = send_discord_notification(
                 sub.webhook_url,
@@ -323,6 +327,28 @@ def broadcast_event_service(
             "success": success,
             "status_code": code,
         })
+
+    # Also dispatch to direct repository.slack_webhook_url if configured and not already dispatched
+    if payload.repository_id:
+        repo = db.query(Repository).filter(Repository.id == payload.repository_id).first()
+        if repo and repo.slack_webhook_url and repo.slack_webhook_url.strip():
+            repo_url = repo.slack_webhook_url.strip()
+            if repo_url not in dispatched_urls:
+                success, code, _ = send_slack_notification(
+                    repo_url,
+                    payload.title,
+                    payload.summary,
+                    payload.details,
+                    payload.agent_name or "Relay AI Copilot",
+                    payload.url,
+                )
+                results.append({
+                    "webhook_id": None,
+                    "name": f"Repository Slack Webhook ({repo.name})",
+                    "service_type": "slack",
+                    "success": success,
+                    "status_code": code,
+                })
 
     db.commit()
     return {"dispatched_count": len(results), "results": results}

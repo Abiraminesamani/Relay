@@ -12,20 +12,17 @@ html {
 }
 
 body {
-  background: #08090d;
-  color: #e6e9f2;
+  background: #08090A;
+  color: #F5F5F5;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
-  background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 90% 90%, rgba(168, 85, 247, 0.08), transparent);
   background-attachment: fixed;
 }
 
-/* Custom sleek scrollbars */
+/* Custom sleek dark graphite scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -33,79 +30,72 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1a1d26;
+  background: #24262A;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a2e3d;
+  background: #373A40;
 }
 
-/* Gradients and backdrops */
+/* Linear-inspired dark graphite panels & cards */
 .auth-bg {
-  background: 
-    radial-gradient(ellipse 70% 50% at 20% 30%, rgba(124, 58, 237, 0.18), transparent),
-    radial-gradient(ellipse 60% 50% at 80% 70%, rgba(59, 130, 246, 0.15), transparent),
-    radial-gradient(ellipse 50% 30% at 50% -10%, rgba(99, 102, 241, 0.25), transparent),
-    #07080c;
+  background: #08090A;
 }
 
 .glass-panel {
-  background: rgba(13, 16, 23, 0.72);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #0C0D0F;
+  border: 1px solid #24262A;
 }
 
 .glass-panel-deep {
-  background: rgba(9, 11, 17, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #08090A;
+  border: 1px solid #24262A;
 }
 
 .glass-card {
-  background: rgba(16, 20, 29, 0.65);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #111214;
+  border: 1px solid #24262A;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card:hover {
-  background: rgba(22, 27, 40, 0.8);
-  border-color: rgba(99, 102, 241, 0.3);
-  transform: translateY(-1px);
+  background: #17181B;
+  border-color: #373A40;
 }
 
-/* Glowing text and borders */
-.glow-blue {
-  box-shadow: 0 0 25px -4px rgba(59, 130, 246, 0.35);
+/* Electric Indigo Focus and Active States (Linear Style) */
+.active-pill {
+  background: #6366F1;
+  color: #F5F5F5;
 }
 
-.glow-purple {
-  box-shadow: 0 0 25px -4px rgba(147, 51, 234, 0.35);
+.btn-primary {
+  background: #6366F1;
+  color: #F5F5F5;
+  transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
+.btn-primary:hover {
+  background: #4F46E5;
+}
+
+.btn-secondary {
+  background: #111214;
+  border: 1px solid #24262A;
+  color: #8B8F98;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: #17181B;
+  color: #F5F5F5;
+  border-color: #373A40;
+}
+
+/* Subtle indigo glow for active selection only */
 .glow-indigo {
-  box-shadow: 0 0 25px -4px rgba(99, 102, 241, 0.35);
-}
-
-.glow-emerald {
-  box-shadow: 0 0 25px -4px rgba(16, 185, 129, 0.35);
-}
-
-.glow-rose {
-  box-shadow: 0 0 25px -4px rgba(244, 63, 94, 0.35);
-}
-
-.glow-amber {
-  box-shadow: 0 0 25px -4px rgba(245, 158, 11, 0.35);
-}
-
-/* Gradient borders */
-.border-gradient-purple {
-  border-image: linear-gradient(to right, #6366f1, #a855f7) 1;
+  box-shadow: 0 0 16px -2px rgba(99, 102, 241, 0.25);
 }
 
 /* Code styling */
@@ -116,7 +106,7 @@ pre code {
 /* Pulse indicator animation */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 0.35; transform: scale(0.85); }
 }
 
 .animate-pulse-dot {

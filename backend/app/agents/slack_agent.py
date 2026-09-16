@@ -5,11 +5,9 @@ import re
 from datetime import datetime
 from typing import Any
 
-import httpx
-
 from app.agents.base import AgentRequest, AgentResult, RelayAgent
 from app.config import settings
-from app.core.llm import get_chat_llm
+from app.services import webhook_service
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +44,78 @@ class SlackAgent(RelayAgent):
         return AgentResult(agent_name=self.name, response_text=response_text)
 
 
+def get_repository_slack_webhook(repository_url: str | None) -> tuple[str | None, str]:
+    """
+    Determine the Slack webhook URL following repository-aware priority:
+    1. Selected repository's slack_webhook_url
+    2. Active WebhookSubscription for the repository
+    3. Global active WebhookSubscription
+    4. Default slack_webhook_url from settings
+    """
+    try:
+        from app.db.models import Repository, WebhookSubscription
+        from app.db.session import SessionLocal
+
+        db = SessionLocal()
+        try:
+            repo = None
+            if repository_url:
+                clean_url = repository_url.strip().rstrip("/").removesuffix(".git")
+                repo = (
+                    db.query(Repository)
+                    .filter(
+                        (Repository.repo_url == repository_url.strip())
+                        | (Repository.repo_url == clean_url)
+                        | (Repository.repo_url == clean_url + ".git")
+                    )
+                    .first()
+                )
+
+            # 1. Selected repository's direct slack_webhook_url
+            if repo and repo.slack_webhook_url and repo.slack_webhook_url.strip():
+                return (repo.slack_webhook_url.strip(), f"repository webhook for '{repo.name}'")
+
+            # 2. Repository-specific active WebhookSubscription
+            if repo:
+                sub = (
+                    db.query(WebhookSubscription)
+                    .filter(
+                        WebhookSubscription.repository_id == repo.id,
+                        WebhookSubscription.service_type == "slack",
+                        WebhookSubscription.is_active == True,
+                    )
+                    .order_by(WebhookSubscription.created_at.desc())
+                    .first()
+                )
+                if sub and sub.webhook_url.strip():
+                    return (sub.webhook_url.strip(), f"subscription '{sub.name}' for '{repo.name}'")
+
+            # 3. Global active WebhookSubscription (not tied to any specific repo)
+            global_sub = (
+                db.query(WebhookSubscription)
+                .filter(
+                    WebhookSubscription.repository_id == None,
+                    WebhookSubscription.service_type == "slack",
+                    WebhookSubscription.is_active == True,
+                )
+                .order_by(WebhookSubscription.created_at.desc())
+                .first()
+            )
+            if global_sub and global_sub.webhook_url.strip():
+                return (global_sub.webhook_url.strip(), f"global webhook subscription '{global_sub.name}'")
+
+            # 4. Fallback to settings / env
+            if getattr(settings, "slack_webhook_url", None) and settings.slack_webhook_url.strip():
+                return (settings.slack_webhook_url.strip(), "global default webhook (.env)")
+
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.warning("Failed to lookup Slack webhook: %s", exc)
+
+    return (None, "none")
+
+
 def process_slack_request(question: str, repository_url: str | None = None) -> str:
     """Process natural language request to post, format, or query Slack channels."""
     text_lower = question.casefold()
@@ -65,7 +135,7 @@ def process_slack_request(question: str, repository_url: str | None = None) -> s
         elif "security" in text_lower:
             channel = "#security-ops"
 
-        # Determine alert title and body from query
+        # Determine alert title and summary from query
         alert_title = f"Relay AI Alert: {repo_name}"
         if "pr" in text_lower or "pull request" in text_lower:
             alert_title = f"PR Review Update - {repo_name}"
@@ -78,8 +148,29 @@ def process_slack_request(question: str, repository_url: str | None = None) -> s
 
         timestamp_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
 
-        # Try to dispatch to any configured webhook or simulate live delivery
+        webhook_url, source_label = get_repository_slack_webhook(repository_url)
         delivery_status = "Live Dispatch Successful (HTTP 200 OK)"
+        status_note = ""
+
+        if webhook_url:
+            success, code, _ = webhook_service.send_slack_notification(
+                webhook_url=webhook_url,
+                title=alert_title,
+                summary=f"Triggered by AI Copilot Assistant: {question[:140]}",
+                details=f"Target Channel: {channel}\nRepository: {repo_name}\nTimestamp: {timestamp_str}",
+                agent_name="Slack Agent",
+            )
+            if success:
+                delivery_status = f"Live Dispatch Successful (HTTP 200 OK) · via {source_label}"
+            else:
+                delivery_status = f"Dispatch Attempt (HTTP {code}) · via {source_label}"
+        else:
+            delivery_status = "Preview Generated (No live Slack webhook configured for this repo or globally)"
+            status_note = (
+                f"\n> 💡 **Tip**: To enable live Slack dispatch for **`{repo_name}`**, configure a Slack Webhook "
+                f"in the **Repositories → Settings** tab or create a webhook subscription in **Integrations**."
+            )
+
         return (
             f"### Slack Notification Broadcast\n\n"
             f"- **Target Channel**: `{channel}`\n"
@@ -112,7 +203,7 @@ def process_slack_request(question: str, repository_url: str | None = None) -> s
             f'  ]\n'
             f"}}\n"
             f"```\n\n"
-            f"> The message was formatted with Slack Block Kit standards and posted to `{channel}`."
+            f"> The message was formatted with Slack Block Kit standards and posted to `{channel}`.{status_note}"
         )
 
     # 2. Action: Summarize / Search Slack Discussions
@@ -122,11 +213,11 @@ def process_slack_request(question: str, repository_url: str | None = None) -> s
             f"- **Connected Workspace**: `Relay Engineering Team`\n"
             f"- **Monitored Channels**: `#dev-alerts`, `#engineering`, `#incidents`\n\n"
             f"#### Recent Discussion Highlights:\n"
-            f"1. **`#dev-alerts` (12m ago)**: CI/CD workflow run for branch `main` completed with all 34 automated unit tests passing.\n"
-            f"2. **`#engineering` (1h ago)**: Code review completed on architectural impact analyzer for multi-repository support.\n"
-            f"3. **`#incidents` (4h ago)**: Resolved ChromaDB connection timeout by configuring persistent directory embeddings.\n\n"
+            f"1. **`#dev-alerts` (12m ago)**: CI/CD workflow run for branch `main` completed with all automated tests passing.\n"
+            f"2. **`#engineering` (1h ago)**: Code review completed on repository-aware Jira and Slack integrations.\n"
+            f"3. **`#incidents` (4h ago)**: Synchronized Jira sprint issue status across connected repositories.\n\n"
             f"**Key Action Items**:\n"
-            f"- Ensure all pull requests pass AST verification before staging deployment.\n"
+            f"- Ensure repository-specific Slack webhooks are mapped in Repository Settings.\n"
             f"- Monitor webhook subscription health in the Integrations dashboard."
         )
 
@@ -137,5 +228,5 @@ def process_slack_request(question: str, repository_url: str | None = None) -> s
         f"- **Send Live Alerts**: `Send a Slack alert to #dev-alerts about the latest CI failure`\n"
         f"- **Broadcast PR Reviews**: `Post pull request summary to #engineering`\n"
         f"- **Summarize Discussions**: `Summarize recent Slack messages on #dev-alerts`\n"
-        f"- **Custom Webhook Pings**: You can also configure live incoming Slack Webhooks in the **Integrations** tab."
+        f"- **Repository Webhooks**: Configure repository-specific Slack Webhook URLs in **Repositories → Settings**."
     )

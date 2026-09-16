@@ -122,11 +122,11 @@ type ArchitectureVisualizerProps = {
 };
 
 const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; dot: string; label: string; icon: any }> = {
-  route: { bg: "bg-blue-950/50", border: "border-blue-500/40", text: "text-blue-400", dot: "bg-blue-400", label: "Routes & API", icon: Compass },
-  service: { bg: "bg-emerald-950/50", border: "border-emerald-500/40", text: "text-emerald-400", dot: "bg-emerald-400", label: "Services Layer", icon: Cpu },
-  agent: { bg: "bg-purple-950/50", border: "border-purple-500/40", text: "text-purple-400", dot: "bg-purple-400", label: "Agents & RAG", icon: Sparkles },
-  model: { bg: "bg-amber-950/50", border: "border-amber-500/40", text: "text-amber-400", dot: "bg-amber-400", label: "Models & DB", icon: Database },
-  core: { bg: "bg-cyan-950/50", border: "border-cyan-500/40", text: "text-cyan-400", dot: "bg-cyan-400", label: "Core & Config", icon: Boxes },
+  route: { bg: "bg-[#17181B]", border: "border-[#24262A]", text: "text-[#8B8F98]", dot: "bg-[#6366F1]", label: "Routes & API", icon: Compass },
+  service: { bg: "bg-[#17181B]", border: "border-[#24262A]", text: "text-[#8B8F98]", dot: "bg-[#22C55E]", label: "Services Layer", icon: Cpu },
+  agent: { bg: "bg-[#17181B]", border: "border-[#24262A]", text: "text-[#8B8F98]", dot: "bg-[#6366F1]", label: "Agents & RAG", icon: Sparkles },
+  model: { bg: "bg-[#17181B]", border: "border-[#24262A]", text: "text-[#8B8F98]", dot: "bg-[#F59E0B]", label: "Models & DB", icon: Database },
+  core: { bg: "bg-[#17181B]", border: "border-[#24262A]", text: "text-[#8B8F98]", dot: "bg-[#8B8F98]", label: "Core & Config", icon: Boxes },
 };
 
 const LAYER_ORDER = ["route", "service", "agent", "model", "core"];
@@ -350,16 +350,16 @@ export default function ArchitectureVisualizer({
   }
 
   return (
-    <div className={`space-y-6 ${isFullscreen ? "fixed inset-0 z-50 bg-[#07080d] p-6 overflow-auto" : ""}`}>
+    <div className={`space-y-6 ${isFullscreen ? "fixed inset-0 z-50 bg-[#08090A] p-6 overflow-auto" : ""}`}>
       {/* Top Header & Multi-Repo Switcher */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 glass-panel p-5 rounded-2xl border border-white/10">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#0C0D0F] p-5 rounded-2xl border border-[#24262A]">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-[#6366F1] font-semibold text-xs uppercase tracking-wider">
             <Network className="w-4 h-4" />
             <span>Interactive Architecture & Dependency Visualizer</span>
           </div>
-          <h1 className="text-2xl font-black text-white">System Topology & Impact Analysis</h1>
-          <p className="text-xs text-gray-400">
+          <h1 className="text-2xl font-bold text-[#F5F5F5]">System Topology & Impact Analysis</h1>
+          <p className="text-xs text-[#8B8F98]">
             Select any connected repository to inspect its AST module graph, blast radius risk score, and relational ERD.
           </p>
         </div>
@@ -367,21 +367,21 @@ export default function ArchitectureVisualizer({
         {/* Action Controls & Multi-Repo Selector */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Repository Selector Dropdown */}
-          <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-xl border border-white/15">
-            <FolderGit2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+          <div className="flex items-center gap-2 bg-[#111214] px-3 py-2 rounded-xl border border-[#24262A]">
+            <FolderGit2 className="w-4 h-4 text-[#8B8F98] flex-shrink-0" />
             <select
               value={selectedRepoId}
               onChange={(e) => setSelectedRepoId(Number(e.target.value))}
-              className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer pr-2"
+              className="bg-transparent text-xs font-semibold text-[#F5F5F5] focus:outline-none cursor-pointer pr-2"
             >
               {repositories.length > 0 ? (
                 repositories.map((r) => (
-                  <option key={r.id} value={r.id} className="bg-[#0b0d14] text-gray-200">
+                  <option key={r.id} value={r.id} className="bg-[#0C0D0F] text-[#F5F5F5]">
                     {r.name}
                   </option>
                 ))
               ) : (
-                <option value={1} className="bg-[#0b0d14] text-gray-200">
+                <option value={1} className="bg-[#0C0D0F] text-[#F5F5F5]">
                   Relay
                 </option>
               )}
@@ -389,40 +389,40 @@ export default function ArchitectureVisualizer({
           </div>
 
           {/* View Switcher Tabs */}
-          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
+          <div className="flex items-center gap-1 bg-[#111214] p-1 rounded-xl border border-[#24262A]">
             <button
               onClick={() => setActiveView("graph")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
                 activeView === "graph"
-                  ? "bg-indigo-600 text-white shadow-lg glow-indigo"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
+                  ? "bg-[#6366F1] text-white shadow-sm"
+                  : "text-[#8B8F98] hover:text-[#F5F5F5] hover:bg-[#17181B]"
               }`}
             >
-              <Network className="w-3.5 h-3.5 text-indigo-300" />
+              <Network className="w-3.5 h-3.5" />
               <span>Module Graph</span>
             </button>
 
             <button
               onClick={() => setActiveView("impact")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
                 activeView === "impact"
-                  ? "bg-indigo-600 text-white shadow-lg glow-indigo"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
+                  ? "bg-[#6366F1] text-white shadow-sm"
+                  : "text-[#8B8F98] hover:text-[#F5F5F5] hover:bg-[#17181B]"
               }`}
             >
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
+              <AlertTriangle className="w-3.5 h-3.5" />
               <span>Impact Map</span>
             </button>
 
             <button
               onClick={() => setActiveView("schema")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
                 activeView === "schema"
-                  ? "bg-indigo-600 text-white shadow-lg glow-indigo"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
+                  ? "bg-[#6366F1] text-white shadow-sm"
+                  : "text-[#8B8F98] hover:text-[#F5F5F5] hover:bg-[#17181B]"
               }`}
             >
-              <Database className="w-3.5 h-3.5 text-emerald-300" />
+              <Database className="w-3.5 h-3.5" />
               <span>Database ERD</span>
             </button>
           </div>
@@ -430,9 +430,9 @@ export default function ArchitectureVisualizer({
       </div>
 
       {loading ? (
-        <div className="glass-panel p-16 rounded-2xl border border-white/10 flex flex-col items-center justify-center space-y-4">
-          <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
-          <p className="text-sm font-semibold text-gray-300">
+        <div className="bg-[#111214] p-16 rounded-2xl border border-[#24262A] flex flex-col items-center justify-center space-y-4">
+          <RefreshCw className="w-8 h-8 text-[#6366F1] animate-spin" />
+          <p className="text-sm font-semibold text-[#8B8F98]">
             Analyzing repository AST dependency trees and schemas...
           </p>
         </div>
@@ -444,16 +444,16 @@ export default function ArchitectureVisualizer({
               {/* Canvas Controls & SVG Graph */}
               <div className="xl:col-span-3 space-y-3">
                 {/* Graph Tool Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 glass-card p-2.5 rounded-xl border border-white/10">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-[#111214] p-2.5 rounded-xl border border-[#24262A]">
                   {/* Search Bar */}
                   <div className="relative min-w-[180px] flex-1 max-w-xs">
-                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-3.5 h-3.5 text-[#8B8F98] absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search module or service..."
-                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-black/50 border border-white/10 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-[#08090A] border border-[#24262A] text-[#F5F5F5] placeholder-[#8B8F98] focus:outline-none focus:border-[#6366F1]"
                     />
                   </div>
 
@@ -463,8 +463,8 @@ export default function ArchitectureVisualizer({
                       onClick={() => setCategoryFilter("all")}
                       className={`px-2.5 py-1 rounded-md font-semibold transition ${
                         categoryFilter === "all"
-                          ? "bg-white/15 text-white border border-white/20"
-                          : "text-gray-400 hover:text-gray-200"
+                          ? "bg-[#17181B] text-[#F5F5F5] border border-[#24262A]"
+                          : "text-[#8B8F98] hover:text-[#F5F5F5]"
                       }`}
                     >
                       All ({graphData?.total_modules || 0})
@@ -478,7 +478,7 @@ export default function ArchitectureVisualizer({
                           className={`px-2 py-1 rounded-md font-semibold transition flex items-center gap-1 ${
                             categoryFilter === cat
                               ? `${meta.bg} ${meta.text} border ${meta.border}`
-                              : "text-gray-400 hover:text-gray-200"
+                              : "text-[#8B8F98] hover:text-[#F5F5F5]"
                           }`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
@@ -489,25 +489,25 @@ export default function ArchitectureVisualizer({
                   </div>
 
                   {/* Zoom & Canvas Actions */}
-                  <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/10">
+                  <div className="flex items-center gap-1 bg-[#0C0D0F] p-1 rounded-lg border border-[#24262A]">
                     <button
                       onClick={() => setZoomLevel((z) => Math.min(1.4, z + 0.1))}
-                      className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
+                      className="p-1 rounded hover:bg-[#17181B] text-[#8B8F98] hover:text-[#F5F5F5]"
                       title="Zoom In"
                     >
                       <ZoomIn className="w-3.5 h-3.5" />
                     </button>
-                    <span className="text-[10px] font-mono text-gray-300 px-1">{Math.round(zoomLevel * 100)}%</span>
+                    <span className="text-[10px] font-mono text-[#8B8F98] px-1">{Math.round(zoomLevel * 100)}%</span>
                     <button
                       onClick={() => setZoomLevel((z) => Math.max(0.5, z - 0.1))}
-                      className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
+                      className="p-1 rounded hover:bg-[#17181B] text-[#8B8F98] hover:text-[#F5F5F5]"
                       title="Zoom Out"
                     >
                       <ZoomOut className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={handleFitToView}
-                      className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 hover:bg-white/20 text-gray-200"
+                      className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#17181B] hover:bg-[#24262A] text-[#F5F5F5] border border-[#24262A]"
                       title="Fit all 5 layers into screen"
                     >
                       Fit All
@@ -517,14 +517,14 @@ export default function ArchitectureVisualizer({
                         setZoomLevel(0.85);
                         setPanOffset({ x: 0, y: 0 });
                       }}
-                      className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
+                      className="p-1 rounded hover:bg-[#17181B] text-[#8B8F98] hover:text-[#F5F5F5]"
                       title="Reset View"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => setIsFullscreen(!isFullscreen)}
-                      className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
+                      className="p-1 rounded hover:bg-[#17181B] text-[#8B8F98] hover:text-[#F5F5F5]"
                       title={isFullscreen ? "Exit Fullscreen" : "Fullscreen View"}
                     >
                       {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -539,13 +539,13 @@ export default function ArchitectureVisualizer({
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
-                  className={`relative glass-panel rounded-2xl border border-white/10 overflow-hidden bg-[#07080d] select-none ${
+                  className={`relative rounded-2xl border border-[#24262A] overflow-hidden bg-[#08090A] select-none ${
                     isDragging ? "cursor-grabbing" : "cursor-grab"
                   } ${isFullscreen ? "h-[82vh]" : "h-[620px]"}`}
                 >
                   {/* Floating Pan/Drag Instruction Pill */}
-                  <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/70 px-2.5 py-1 rounded-full border border-white/10 text-[10px] text-gray-400 pointer-events-none backdrop-blur-md">
-                    <Hand className="w-3 h-3 text-indigo-400" />
+                  <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-[#0C0D0F]/90 px-2.5 py-1 rounded-full border border-[#24262A] text-[10px] text-[#8B8F98] pointer-events-none backdrop-blur-md">
+                    <Hand className="w-3 h-3 text-[#6366F1]" />
                     <span>Drag canvas to pan · Scroll to zoom</span>
                   </div>
 
@@ -574,10 +574,10 @@ export default function ArchitectureVisualizer({
                             top: "16px",
                             width: "200px",
                           }}
-                          className={`text-center py-1.5 px-2 rounded-xl border flex items-center justify-center gap-1.5 shadow-md ${meta.bg} ${meta.border} ${meta.text}`}
+                          className={`text-center py-1.5 px-2 rounded-xl border flex items-center justify-center gap-1.5 shadow-sm bg-[#111214] border-[#24262A] text-[#F5F5F5]`}
                         >
-                          <IconComp className="w-3.5 h-3.5" />
-                          <span className="text-[11px] font-black uppercase tracking-wider">{meta.label}</span>
+                          <IconComp className="w-3.5 h-3.5 text-[#8B8F98]" />
+                          <span className="text-[11px] font-bold uppercase tracking-wider">{meta.label}</span>
                         </div>
                       );
                     })}
@@ -593,7 +593,7 @@ export default function ArchitectureVisualizer({
                           refY="3"
                           orient="auto"
                         >
-                          <polygon points="0 0, 8 3, 0 6" fill="#4f46e5" opacity="0.8" />
+                          <polygon points="0 0, 8 3, 0 6" fill="#6366F1" opacity="0.6" />
                         </marker>
                         <marker
                           id="arrowhead-highlight"
@@ -603,7 +603,7 @@ export default function ArchitectureVisualizer({
                           refY="4"
                           orient="auto"
                         >
-                          <polygon points="0 0, 10 4, 0 8" fill="#a855f7" />
+                          <polygon points="0 0, 10 4, 0 8" fill="#6366F1" />
                         </marker>
                       </defs>
 
@@ -629,10 +629,10 @@ export default function ArchitectureVisualizer({
                             <path
                               d={pathData}
                               fill="none"
-                              stroke={isHighlighted ? "#c084fc" : "#4338ca"}
-                              strokeWidth={isHighlighted ? 2.5 : 1.2}
+                              stroke={isHighlighted ? "#6366F1" : "#24262A"}
+                              strokeWidth={isHighlighted ? 2 : 1.2}
                               strokeDasharray={edge.type === "queries" ? "4 4" : "none"}
-                              opacity={isHighlighted ? 1 : 0.45}
+                              opacity={isHighlighted ? 1 : 0.6}
                               markerEnd={isHighlighted ? "url(#arrowhead-highlight)" : "url(#arrowhead-default)"}
                             />
                           </g>
@@ -655,29 +655,29 @@ export default function ArchitectureVisualizer({
                             top: `${node.y}px`,
                             width: "200px",
                           }}
-                          className={`interactive-node cursor-pointer rounded-xl p-3 border transition-all duration-200 z-10 select-none shadow-md ${
+                          className={`interactive-node cursor-pointer rounded-xl p-3 border transition-all duration-150 z-10 select-none shadow-sm ${
                             isSelected
-                              ? "bg-indigo-950/90 border-indigo-400 ring-2 ring-indigo-500/60 shadow-indigo-500/30 scale-105"
-                              : "bg-[#0c0e15]/95 border-white/10 hover:border-white/25 hover:bg-white/[0.04]"
+                              ? "bg-[#17181B] border-[#6366F1] ring-1 ring-[#6366F1]/50"
+                              : "bg-[#111214] border-[#24262A] hover:border-[#373A40] hover:bg-[#17181B]"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-1 mb-1">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meta.dot}`} />
-                              <span className="text-xs font-bold text-white truncate">{node.name}</span>
+                              <span className="text-xs font-bold text-[#F5F5F5] truncate">{node.name}</span>
                             </div>
                             <span
-                              className={`text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize ${meta.bg} ${meta.text}`}
+                              className={`text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize bg-[#17181B] text-[#8B8F98] border border-[#24262A]`}
                             >
                               {node.category}
                             </span>
                           </div>
 
-                          <div className="text-[10px] text-gray-500 truncate font-mono mb-2" title={node.path}>
+                          <div className="text-[10px] text-[#8B8F98] truncate font-mono mb-2" title={node.path}>
                             {node.path}
                           </div>
 
-                          <div className="flex items-center justify-between text-[10px] text-gray-400 border-t border-white/5 pt-1.5">
+                          <div className="flex items-center justify-between text-[10px] text-[#8B8F98] border-t border-[#24262A] pt-1.5">
                             <span title="In-degree (dependents)">In: {node.in_degree}</span>
                             <span title="Out-degree (dependencies)">Out: {node.out_degree}</span>
                             <button
@@ -686,7 +686,7 @@ export default function ArchitectureVisualizer({
                                 setSelectedNodeId(node.id);
                                 setActiveView("impact");
                               }}
-                              className="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-0.5"
+                              className="text-[#6366F1] hover:text-indigo-400 font-semibold flex items-center gap-0.5"
                               title="Inspect Blast Radius"
                             >
                               <span>Impact</span>
@@ -702,17 +702,15 @@ export default function ArchitectureVisualizer({
 
               {/* Node Inspector & Impact Summary Card */}
               <div className="space-y-4">
-                <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                <div className="bg-[#111214] p-5 rounded-2xl border border-[#24262A] space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#24262A]">
                     <div className="flex items-center gap-2">
-                      <FileCode2 className="w-4 h-4 text-indigo-400" />
-                      <h3 className="text-sm font-bold text-white">Module Inspector</h3>
+                      <FileCode2 className="w-4 h-4 text-[#6366F1]" />
+                      <h3 className="text-sm font-bold text-[#F5F5F5]">Module Inspector</h3>
                     </div>
                     {selectedNode && (
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                          CATEGORY_COLORS[selectedNode.category]?.bg
-                        } ${CATEGORY_COLORS[selectedNode.category]?.text}`}
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase bg-[#17181B] text-[#8B8F98] border border-[#24262A]`}
                       >
                         {selectedNode.category}
                       </span>
@@ -722,68 +720,66 @@ export default function ArchitectureVisualizer({
                   {selectedNode ? (
                     <div className="space-y-4 text-xs">
                       <div>
-                        <div className="text-gray-400 text-[11px]">Module Identifier</div>
-                        <div className="text-sm font-bold text-white mt-0.5">{selectedNode.name}</div>
-                        <div className="text-[10px] font-mono text-gray-400 mt-0.5 break-all">
+                        <div className="text-[#8B8F98] text-[11px]">Module Identifier</div>
+                        <div className="text-sm font-bold text-[#F5F5F5] mt-0.5">{selectedNode.name}</div>
+                        <div className="text-[10px] font-mono text-[#8B8F98] mt-0.5 break-all">
                           {selectedNode.path}
                         </div>
                       </div>
 
                       {/* Degree Metrics */}
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
-                          <div className="text-[10px] text-gray-400">Incoming Calls</div>
-                          <div className="text-base font-black text-indigo-400">{selectedNode.in_degree}</div>
-                          <div className="text-[9px] text-gray-500">Dependent modules</div>
+                        <div className="p-2.5 rounded-xl bg-[#0C0D0F] border border-[#24262A]">
+                          <div className="text-[10px] text-[#8B8F98]">Incoming Calls</div>
+                          <div className="text-base font-bold text-[#F5F5F5]">{selectedNode.in_degree}</div>
+                          <div className="text-[9px] text-[#8B8F98]">Dependent modules</div>
                         </div>
-                        <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
-                          <div className="text-[10px] text-gray-400">Outgoing Calls</div>
-                          <div className="text-base font-black text-purple-400">{selectedNode.out_degree}</div>
-                          <div className="text-[9px] text-gray-500">External services</div>
+                        <div className="p-2.5 rounded-xl bg-[#0C0D0F] border border-[#24262A]">
+                          <div className="text-[10px] text-[#8B8F98]">Outgoing Calls</div>
+                          <div className="text-base font-bold text-[#F5F5F5]">{selectedNode.out_degree}</div>
+                          <div className="text-[9px] text-[#8B8F98]">External services</div>
                         </div>
                       </div>
 
                       {/* Quick Blast Radius Preview */}
                       {impactData && (
-                        <div className="p-3 rounded-xl bg-black/40 border border-white/10 space-y-2">
+                        <div className="p-3 rounded-xl bg-[#0C0D0F] border border-[#24262A] space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-gray-300 font-bold text-[11px]">Blast Radius Score</span>
+                            <span className="text-[#F5F5F5] font-semibold text-[11px]">Blast Radius Score</span>
                             <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                impactData.risk_level === "CRITICAL"
-                                  ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                                  : impactData.risk_level === "HIGH"
-                                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                impactData.risk_level === "CRITICAL" || impactData.risk_level === "HIGH"
+                                  ? "bg-red-500/10 text-[#EF4444] border border-[#EF4444]/30"
                                   : impactData.risk_level === "MEDIUM"
-                                  ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                                  : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                  ? "bg-amber-500/10 text-[#F59E0B] border border-[#F59E0B]/30"
+                                  : "bg-emerald-500/10 text-[#22C55E] border border-[#22C55E]/30"
                               }`}
                             >
                               {impactData.risk_level} ({impactData.risk_score}/100)
                             </span>
                           </div>
 
-                          <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                          <div className="w-full bg-[#17181B] h-2 rounded-full overflow-hidden border border-[#24262A]">
                             <div
                               className={`h-full transition-all duration-500 ${
                                 impactData.risk_score > 75
-                                  ? "bg-gradient-to-r from-amber-500 to-red-500"
+                                  ? "bg-[#EF4444]"
                                   : impactData.risk_score > 40
-                                  ? "bg-gradient-to-r from-blue-500 to-amber-500"
-                                  : "bg-gradient-to-r from-emerald-500 to-teal-500"
+                                  ? "bg-[#F59E0B]"
+                                  : "bg-[#22C55E]"
                               }`}
                               style={{ width: `${impactData.risk_score}%` }}
                             />
                           </div>
 
-                          <div className="text-[11px] text-gray-400 space-y-1 pt-1">
+                          <div className="text-[11px] text-[#8B8F98] space-y-1 pt-1">
                             <div className="flex justify-between">
                               <span>Direct Dependents:</span>
-                              <span className="font-bold text-white">{impactData.direct_dependents.length} files</span>
+                              <span className="font-semibold text-[#F5F5F5]">{impactData.direct_dependents.length} files</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Impacted Endpoints:</span>
-                              <span className="font-bold text-white">{impactData.impacted_endpoints.length} routes</span>
+                              <span className="font-semibold text-[#F5F5F5]">{impactData.impacted_endpoints.length} routes</span>
                             </div>
                           </div>
                         </div>
@@ -793,7 +789,7 @@ export default function ArchitectureVisualizer({
                       <div className="space-y-2 pt-2">
                         <button
                           onClick={() => setActiveView("impact")}
-                          className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs hover:from-indigo-500 hover:to-purple-500 transition shadow-md flex items-center justify-center gap-2"
+                          className="w-full py-2 px-3 rounded-xl bg-[#6366F1] text-white font-semibold text-xs hover:bg-[#4F46E5] transition shadow-sm flex items-center justify-center gap-2"
                         >
                           <AlertTriangle className="w-3.5 h-3.5" />
                           <span>Full Impact Breakdown</span>
@@ -808,16 +804,16 @@ export default function ArchitectureVisualizer({
                                 `Provide a detailed architectural review and code analysis for module '${selectedNode.name}' (${selectedNode.path}) in repository '${graphData?.repository_name}'.\n\nArchitectural Metrics:\n- Layer Category: ${selectedNode.category}\n- In-degree (Upstream Callers): ${inDeg}\n- Out-degree (Dependencies): ${outDeg}\n\nExplain its architectural role, how it interacts with other services, and recommendations for test coverage and modularity.`
                               );
                             }}
-                            className="w-full py-2 px-3 rounded-xl bg-white/[0.05] border border-white/10 hover:bg-white/10 text-gray-300 font-semibold text-xs transition flex items-center justify-center gap-2"
+                            className="w-full py-2 px-3 rounded-xl bg-[#17181B] border border-[#24262A] hover:border-[#373A40] text-[#8B8F98] hover:text-[#F5F5F5] font-semibold text-xs transition flex items-center justify-center gap-2"
                           >
-                            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                            <Sparkles className="w-3.5 h-3.5 text-[#6366F1]" />
                             <span>Ask AI Copilot About Module</span>
                           </button>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500 text-xs">
+                    <div className="text-center py-8 text-[#8B8F98] text-xs">
                       Select any node in the graph to inspect its properties and dependencies.
                     </div>
                   )}
@@ -830,15 +826,15 @@ export default function ArchitectureVisualizer({
           {activeView === "impact" && (
             <div className="space-y-6">
               {/* Target File Selector */}
-              <div className="glass-panel p-5 rounded-2xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="bg-[#0C0D0F] p-5 rounded-2xl border border-[#24262A] flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                  <div className="p-2.5 rounded-xl bg-[#17181B] border border-[#24262A] text-[#F59E0B]">
                     <AlertTriangle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">Blast Radius Target File</h3>
-                    <p className="text-xs text-gray-400">
-                      Select any file in repository <span className="text-white font-bold">{graphData?.repository_name}</span> to simulate code modifications and view upstream breaking changes.
+                    <h3 className="text-sm font-bold text-[#F5F5F5]">Blast Radius Target File</h3>
+                    <p className="text-xs text-[#8B8F98]">
+                      Select any file in repository <span className="text-[#F5F5F5] font-semibold">{graphData?.repository_name}</span> to simulate code modifications and view upstream breaking changes.
                     </p>
                   </div>
                 </div>
@@ -847,10 +843,10 @@ export default function ArchitectureVisualizer({
                   <select
                     value={selectedNodeId}
                     onChange={(e) => setSelectedNodeId(e.target.value)}
-                    className="px-3.5 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-indigo-500 max-w-[280px] truncate"
+                    className="px-3.5 py-2 rounded-xl bg-[#111214] border border-[#24262A] text-xs text-[#F5F5F5] focus:outline-none focus:border-[#6366F1] max-w-[280px] truncate"
                   >
                     {graphData?.nodes.map((n) => (
-                      <option key={n.id} value={n.id}>
+                      <option key={n.id} value={n.id} className="bg-[#0C0D0F] text-[#F5F5F5]">
                         {n.name} ({n.category})
                       </option>
                     ))}
@@ -859,7 +855,7 @@ export default function ArchitectureVisualizer({
                   <button
                     onClick={() => fetchImpactAnalysis(selectedNodeId)}
                     disabled={impactLoading}
-                    className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0"
+                    className="px-3.5 py-2 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white text-xs font-semibold transition flex items-center gap-1.5 flex-shrink-0 disabled:opacity-50"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${impactLoading ? "animate-spin" : ""}`} />
                     <span>Recalculate</span>
@@ -873,58 +869,58 @@ export default function ArchitectureVisualizer({
                   {/* Left Column: Risk Score & AI Safety Recommendation */}
                   <div className="space-y-4">
                     {/* Risk Level Meter */}
-                    <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-4">
-                      <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    <div className="bg-[#111214] p-5 rounded-2xl border border-[#24262A] space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-[#24262A]">
+                        <span className="text-xs font-semibold text-[#8B8F98] uppercase tracking-wider">
                           Blast Radius Severity
                         </span>
                         {impactData.risk_level === "CRITICAL" || impactData.risk_level === "HIGH" ? (
-                          <ShieldAlert className="w-5 h-5 text-red-400" />
+                          <ShieldAlert className="w-5 h-5 text-[#EF4444]" />
                         ) : (
-                          <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                          <ShieldCheck className="w-5 h-5 text-[#22C55E]" />
                         )}
                       </div>
 
                       <div className="text-center py-2 space-y-1">
                         <div
-                          className={`text-4xl font-black ${
+                          className={`text-4xl font-bold ${
                             impactData.risk_level === "CRITICAL"
-                              ? "text-red-400"
+                              ? "text-[#EF4444]"
                               : impactData.risk_level === "HIGH"
-                              ? "text-amber-400"
+                              ? "text-[#F59E0B]"
                               : impactData.risk_level === "MEDIUM"
-                              ? "text-yellow-400"
-                              : "text-emerald-400"
+                              ? "text-[#F59E0B]"
+                              : "text-[#22C55E]"
                           }`}
                         >
                           {impactData.risk_score}
-                          <span className="text-base text-gray-500 font-normal"> / 100</span>
+                          <span className="text-base text-[#8B8F98] font-normal"> / 100</span>
                         </div>
-                        <div className="text-xs font-bold uppercase tracking-widest text-gray-300">
+                        <div className="text-xs font-semibold uppercase tracking-widest text-[#8B8F98]">
                           Risk Level: {impactData.risk_level}
                         </div>
                       </div>
 
-                      <div className="w-full bg-white/5 h-2.5 rounded-full overflow-hidden">
+                      <div className="w-full bg-[#17181B] h-2.5 rounded-full overflow-hidden border border-[#24262A]">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
                             impactData.risk_score > 75
-                              ? "bg-gradient-to-r from-amber-500 to-red-500"
+                              ? "bg-[#EF4444]"
                               : impactData.risk_score > 40
-                              ? "bg-gradient-to-r from-blue-500 to-amber-500"
-                              : "bg-gradient-to-r from-emerald-500 to-teal-500"
+                              ? "bg-[#F59E0B]"
+                              : "bg-[#22C55E]"
                           }`}
                           style={{ width: `${impactData.risk_score}%` }}
                         />
                       </div>
 
                       {/* AI Recommendation Alert */}
-                      <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
+                      <div className="p-3.5 rounded-xl bg-[#0C0D0F] border border-[#24262A] space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-[#6366F1]">
                           <Sparkles className="w-3.5 h-3.5" />
                           <span>AI Architectural Guardrail</span>
                         </div>
-                        <p className="text-[11px] text-gray-300 leading-relaxed">
+                        <p className="text-[11px] text-[#8B8F98] leading-relaxed">
                           {impactData.ai_recommendation}
                         </p>
                       </div>
@@ -943,7 +939,7 @@ export default function ArchitectureVisualizer({
                               `Generate a comprehensive blast radius impact mitigation and regression testing plan for modifying '${impactData.target_file}' in repository '${graphData?.repository_name}'.\n\nImpact Assessment:\n- Risk Score: ${impactData.risk_score}/100 (${impactData.risk_level})\n- Direct Dependents: ${directDeps}\n- Indirect Ripple Dependents: ${indirectDeps}\n- Impacted Endpoints: ${epSummary}\n- Safety Guardrail: ${impactData.ai_recommendation}\n\nOutline the specific regression test suites, unit tests, and API integration checks required before merging changes.`
                             );
                           }}
-                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs hover:from-indigo-500 hover:to-purple-500 transition shadow-md flex items-center justify-center gap-2"
+                          className="w-full py-2.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold text-xs transition shadow-sm flex items-center justify-center gap-2"
                         >
                           <Sparkles className="w-4 h-4" />
                           <span>Generate Impact Mitigation Plan</span>
@@ -955,22 +951,22 @@ export default function ArchitectureVisualizer({
                   {/* Middle & Right Columns: Dependents & Impacted API Routes */}
                   <div className="lg:col-span-2 space-y-4">
                     {/* Direct & Indirect Dependents */}
-                    <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-4">
-                      <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <div className="bg-[#111214] p-5 rounded-2xl border border-[#24262A] space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-[#24262A]">
                         <div className="flex items-center gap-2">
-                          <Layers className="w-4 h-4 text-purple-400" />
-                          <h3 className="text-sm font-bold text-white">Upstream Dependents (Direct & Indirect)</h3>
+                          <Layers className="w-4 h-4 text-[#8B8F98]" />
+                          <h3 className="text-sm font-bold text-[#F5F5F5]">Upstream Dependents (Direct & Indirect)</h3>
                         </div>
-                        <span className="text-[11px] font-semibold text-gray-400">
+                        <span className="text-[11px] font-semibold text-[#8B8F98]">
                           {impactData.direct_dependents.length + impactData.indirect_dependents.length} files affected
                         </span>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Direct Dependents */}
-                        <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-2">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
-                            <span className="w-2 h-2 rounded-full bg-amber-400" />
+                        <div className="p-3 rounded-xl bg-[#0C0D0F] border border-[#24262A] space-y-2">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#F59E0B]">
+                            <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
                             <span>Direct Consumers ({impactData.direct_dependents.length})</span>
                           </div>
                           {impactData.direct_dependents.length > 0 ? (
@@ -979,22 +975,22 @@ export default function ArchitectureVisualizer({
                                 <li
                                   key={idx}
                                   onClick={() => setSelectedNodeId(dep)}
-                                  className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-gray-200 cursor-pointer transition flex items-center justify-between group font-mono text-[11px]"
+                                  className="p-1.5 rounded-lg bg-[#111214] hover:bg-[#17181B] text-[#F5F5F5] cursor-pointer transition flex items-center justify-between group font-mono text-[11px] border border-transparent hover:border-[#24262A]"
                                 >
                                   <span className="truncate">{dep}</span>
-                                  <ArrowRight className="w-3 h-3 text-gray-500 group-hover:text-indigo-400 transition flex-shrink-0" />
+                                  <ArrowRight className="w-3 h-3 text-[#8B8F98] group-hover:text-[#6366F1] transition flex-shrink-0" />
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <div className="text-[11px] text-gray-500 py-2">No direct upstream callers.</div>
+                            <div className="text-[11px] text-[#8B8F98] py-2">No direct upstream callers.</div>
                           )}
                         </div>
 
                         {/* Indirect Dependents */}
-                        <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-2">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-400">
-                            <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                        <div className="p-3 rounded-xl bg-[#0C0D0F] border border-[#24262A] space-y-2">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#6366F1]">
+                            <span className="w-2 h-2 rounded-full bg-[#6366F1]" />
                             <span>Indirect Consumers ({impactData.indirect_dependents.length})</span>
                           </div>
                           {impactData.indirect_dependents.length > 0 ? (
@@ -1003,28 +999,28 @@ export default function ArchitectureVisualizer({
                                 <li
                                   key={idx}
                                   onClick={() => setSelectedNodeId(dep)}
-                                  className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-gray-200 cursor-pointer transition flex items-center justify-between group font-mono text-[11px]"
+                                  className="p-1.5 rounded-lg bg-[#111214] hover:bg-[#17181B] text-[#F5F5F5] cursor-pointer transition flex items-center justify-between group font-mono text-[11px] border border-transparent hover:border-[#24262A]"
                                 >
                                   <span className="truncate">{dep}</span>
-                                  <ArrowRight className="w-3 h-3 text-gray-500 group-hover:text-indigo-400 transition flex-shrink-0" />
+                                  <ArrowRight className="w-3 h-3 text-[#8B8F98] group-hover:text-[#6366F1] transition flex-shrink-0" />
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <div className="text-[11px] text-gray-500 py-2">No secondary ripple effects detected.</div>
+                            <div className="text-[11px] text-[#8B8F98] py-2">No secondary ripple effects detected.</div>
                           )}
                         </div>
                       </div>
                     </div>
 
                     {/* Impacted HTTP API Endpoints */}
-                    <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-4">
-                      <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <div className="bg-[#111214] p-5 rounded-2xl border border-[#24262A] space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-[#24262A]">
                         <div className="flex items-center gap-2">
-                          <Server className="w-4 h-4 text-emerald-400" />
-                          <h3 className="text-sm font-bold text-white">Impacted HTTP API Endpoints</h3>
+                          <Server className="w-4 h-4 text-[#22C55E]" />
+                          <h3 className="text-sm font-bold text-[#F5F5F5]">Impacted HTTP API Endpoints</h3>
                         </div>
-                        <span className="text-[11px] font-semibold text-gray-400">
+                        <span className="text-[11px] font-semibold text-[#8B8F98]">
                           {impactData.impacted_endpoints.length} routes at risk
                         </span>
                       </div>
@@ -1034,35 +1030,35 @@ export default function ArchitectureVisualizer({
                           {impactData.impacted_endpoints.map((ep, idx) => (
                             <div
                               key={idx}
-                              className="p-3 rounded-xl bg-black/40 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-white/15 transition"
+                              className="p-3 rounded-xl bg-[#0C0D0F] border border-[#24262A] flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-[#17181B] transition"
                             >
                               <div className="flex items-center gap-2.5">
                                 <span
-                                  className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                                     ep.method === "POST"
-                                      ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+                                      ? "bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/30"
                                       : ep.method === "GET"
-                                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                      ? "bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/30"
                                       : ep.method === "PUT"
-                                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                                      : "bg-red-500/20 text-red-400 border border-red-500/30"
+                                      ? "bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30"
+                                      : "bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30"
                                   }`}
                                 >
                                   {ep.method}
                                 </span>
-                                <span className="text-xs font-bold text-white font-mono">{ep.path}</span>
+                                <span className="text-xs font-bold text-[#F5F5F5] font-mono">{ep.path}</span>
                               </div>
 
-                              <div className="flex items-center gap-3 text-[11px] text-gray-400 font-mono">
+                              <div className="flex items-center gap-3 text-[11px] text-[#8B8F98] font-mono">
                                 <span>{ep.handler}()</span>
-                                <span className="text-gray-600">|</span>
-                                <span className="text-gray-500">{ep.file_path}</span>
+                                <span className="text-[#373A40]">|</span>
+                                <span className="text-[#8B8F98]">{ep.file_path}</span>
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <div className="p-6 text-center text-xs text-gray-500">
+                        <div className="p-6 text-center text-xs text-[#8B8F98]">
                           No external HTTP endpoints directly depend on this module.
                         </div>
                       )}
@@ -1078,24 +1074,24 @@ export default function ArchitectureVisualizer({
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Tables Navigation List */}
               <div className="space-y-4">
-                <div className="glass-panel p-4 rounded-2xl border border-white/10 space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                <div className="bg-[#111214] p-4 rounded-2xl border border-[#24262A] space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#24262A]">
                     <div className="flex items-center gap-2">
-                      <Database className="w-4 h-4 text-emerald-400" />
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                      <Database className="w-4 h-4 text-[#22C55E]" />
+                      <h3 className="text-xs font-bold text-[#F5F5F5] uppercase tracking-wider">
                         Tables ({schemaData.total_tables})
                       </h3>
                     </div>
                   </div>
 
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-3.5 h-3.5 text-[#8B8F98] absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       value={tableSearch}
                       onChange={(e) => setTableSearch(e.target.value)}
                       placeholder="Search tables or columns..."
-                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-black/50 border border-white/10 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-[#08090A] border border-[#24262A] text-[#F5F5F5] placeholder-[#8B8F98] focus:outline-none focus:border-[#6366F1]"
                     />
                   </div>
 
@@ -1108,15 +1104,15 @@ export default function ArchitectureVisualizer({
                           onClick={() => setSelectedTable(tbl.name)}
                           className={`w-full text-left p-2.5 rounded-xl text-xs transition flex items-center justify-between group ${
                             isSelected
-                              ? "bg-emerald-950/60 border border-emerald-500/40 text-white shadow-sm"
-                              : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
+                              ? "bg-[#17181B] border border-[#6366F1] text-[#F5F5F5] shadow-sm"
+                              : "text-[#8B8F98] hover:bg-[#17181B] hover:text-[#F5F5F5]"
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <Database className={`w-3.5 h-3.5 ${isSelected ? "text-emerald-400" : "text-gray-500"}`} />
-                            <span className="font-bold truncate">{tbl.name}</span>
+                            <Database className={`w-3.5 h-3.5 ${isSelected ? "text-[#6366F1]" : "text-[#8B8F98]"}`} />
+                            <span className="font-semibold truncate">{tbl.name}</span>
                           </div>
-                          <span className="text-[10px] text-gray-500 font-mono">
+                          <span className="text-[10px] text-[#8B8F98] font-mono">
                             {tbl.columns.length} cols
                           </span>
                         </button>
@@ -1130,20 +1126,20 @@ export default function ArchitectureVisualizer({
               <div className="lg:col-span-3 space-y-4">
                 {/* Active Table Details Card */}
                 {selectedTableObj && (
-                  <div className="glass-panel p-6 rounded-2xl border border-white/10 space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/5">
+                  <div className="bg-[#111214] p-6 rounded-2xl border border-[#24262A] space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#24262A]">
                       <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                        <div className="p-2.5 rounded-xl bg-[#17181B] border border-[#24262A] text-[#22C55E]">
                           <Database className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h2 className="text-lg font-black text-white">{selectedTableObj.name}</h2>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950/50 text-emerald-400 border border-emerald-500/30">
+                            <h2 className="text-lg font-bold text-[#F5F5F5]">{selectedTableObj.name}</h2>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#17181B] text-[#8B8F98] border border-[#24262A]">
                               SQLAlchemy ORM
                             </span>
                           </div>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-[#8B8F98]">
                             {selectedTableObj.columns.length} attributes · {selectedTableObj.primary_keys.length} Primary Keys · {selectedTableObj.foreign_keys.length} Foreign Keys
                           </p>
                         </div>
@@ -1173,9 +1169,9 @@ export default function ArchitectureVisualizer({
                               `Analyze and explain the database table '${selectedTableObj.name}' in repository '${graphData?.repository_name}'.\n\nSchema Details:\n- Columns: ${colSummary}\n- Primary Keys: ${selectedTableObj.primary_keys.join(", ") || "None"}\n- Foreign Keys: ${selectedTableObj.foreign_keys.join(", ") || "None"}\n- Relationships: ${relSummary || "None"}\n\nProvide an architectural overview, indexing recommendations, foreign key query optimization tips, and potential schema evolution suggestions.`
                             );
                           }}
-                          className="px-3.5 py-2 rounded-xl bg-white/[0.05] border border-white/10 hover:bg-white/10 text-gray-200 text-xs font-semibold transition flex items-center gap-2 self-start sm:self-auto"
+                          className="px-3.5 py-2 rounded-xl bg-[#17181B] border border-[#24262A] hover:border-[#373A40] text-[#8B8F98] hover:text-[#F5F5F5] text-xs font-semibold transition flex items-center gap-2 self-start sm:self-auto"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                          <Sparkles className="w-3.5 h-3.5 text-[#6366F1]" />
                           <span>Explain Table with AI</span>
                         </button>
                       )}
@@ -1185,7 +1181,7 @@ export default function ArchitectureVisualizer({
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                          <tr className="border-b border-white/10 text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                          <tr className="border-b border-[#24262A] text-[10px] uppercase font-semibold text-[#8B8F98] tracking-wider">
                             <th className="pb-3 font-semibold">Column Name</th>
                             <th className="pb-3 font-semibold">Data Type</th>
                             <th className="pb-3 font-semibold">Constraints</th>
@@ -1193,63 +1189,63 @@ export default function ArchitectureVisualizer({
                             <th className="pb-3 font-semibold text-right">Nullable</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-[#24262A]">
                           {selectedTableObj.columns.map((col, idx) => (
-                            <tr key={idx} className="hover:bg-white/[0.02] transition">
-                              <td className="py-2.5 font-mono font-bold text-white flex items-center gap-2">
+                            <tr key={idx} className="hover:bg-[#17181B]/50 transition">
+                              <td className="py-2.5 font-mono font-bold text-[#F5F5F5] flex items-center gap-2">
                                 {col.primary_key ? (
                                   <span title="Primary Key">
-                                    <Key className="w-3.5 h-3.5 text-amber-400" />
+                                    <Key className="w-3.5 h-3.5 text-[#F59E0B]" />
                                   </span>
                                 ) : col.foreign_key ? (
                                   <span title="Foreign Key">
-                                    <LinkIcon className="w-3.5 h-3.5 text-indigo-400" />
+                                    <LinkIcon className="w-3.5 h-3.5 text-[#6366F1]" />
                                   </span>
                                 ) : (
                                   <span className="w-3.5" />
                                 )}
                                 <span>{col.name}</span>
                               </td>
-                              <td className="py-2.5 text-purple-400 font-mono text-[11px]">{col.type}</td>
+                              <td className="py-2.5 text-[#8B8F98] font-mono text-[11px]">{col.type}</td>
                               <td className="py-2.5">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   {col.primary_key && (
-                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30">
                                       PK
                                     </span>
                                   )}
                                   {col.foreign_key && (
-                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/30">
                                       FK
                                     </span>
                                   )}
                                   {col.unique && (
-                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#8B8F98]/10 text-[#8B8F98] border border-[#24262A]">
                                       UNIQUE
                                     </span>
                                   )}
                                 </div>
                               </td>
-                              <td className="py-2.5 font-mono text-[11px] text-gray-300">
+                              <td className="py-2.5 font-mono text-[11px] text-[#8B8F98]">
                                 {col.foreign_key ? (
                                   <button
                                     onClick={() => {
                                       const targetTbl = col.foreign_key?.split(".")[0];
                                       if (targetTbl) setSelectedTable(targetTbl);
                                     }}
-                                    className="text-indigo-400 hover:text-indigo-300 underline flex items-center gap-1"
+                                    className="text-[#6366F1] hover:underline flex items-center gap-1"
                                   >
                                     <span>→ {col.foreign_key}</span>
                                   </button>
                                 ) : (
-                                  <span className="text-gray-600">—</span>
+                                  <span className="text-[#5C6068]">—</span>
                                 )}
                               </td>
                               <td className="py-2.5 text-right font-mono text-[11px]">
                                 {col.nullable ? (
-                                  <span className="text-gray-400">NULL</span>
+                                  <span className="text-[#8B8F98]">NULL</span>
                                 ) : (
-                                  <span className="text-amber-400 font-bold">NOT NULL</span>
+                                  <span className="text-[#F59E0B] font-semibold">NOT NULL</span>
                                 )}
                               </td>
                             </tr>
@@ -1261,11 +1257,11 @@ export default function ArchitectureVisualizer({
                 )}
 
                 {/* Database Relationships Summary */}
-                <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                <div className="bg-[#111214] p-5 rounded-2xl border border-[#24262A] space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#24262A]">
                     <div className="flex items-center gap-2">
-                      <LinkIcon className="w-4 h-4 text-indigo-400" />
-                      <h3 className="text-sm font-bold text-white">
+                      <LinkIcon className="w-4 h-4 text-[#6366F1]" />
+                      <h3 className="text-sm font-bold text-[#F5F5F5]">
                         Entity-Relationship Foreign Key Links ({schemaData.total_relationships})
                       </h3>
                     </div>
@@ -1275,30 +1271,30 @@ export default function ArchitectureVisualizer({
                     {schemaData.relationships.map((rel, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between text-xs hover:border-white/15 transition"
+                        className="p-3 rounded-xl bg-[#0C0D0F] border border-[#24262A] flex items-center justify-between text-xs hover:bg-[#17181B] transition"
                       >
                         <div className="flex items-center gap-2 font-mono">
                           <button
                             onClick={() => setSelectedTable(rel.from_table)}
-                            className="font-bold text-white hover:text-indigo-400 underline"
+                            className="font-semibold text-[#F5F5F5] hover:text-[#6366F1] underline"
                           >
                             {rel.from_table}
                           </button>
-                          <span className="text-gray-500">({rel.from_column})</span>
+                          <span className="text-[#8B8F98]">({rel.from_column})</span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-indigo-400">
+                        <div className="flex items-center gap-2 text-[#6366F1]">
                           <ArrowRight className="w-3.5 h-3.5" />
                         </div>
 
                         <div className="flex items-center gap-2 font-mono">
                           <button
                             onClick={() => setSelectedTable(rel.to_table)}
-                            className="font-bold text-emerald-400 hover:text-emerald-300 underline"
+                            className="font-semibold text-[#22C55E] hover:underline"
                           >
                             {rel.to_table}
                           </button>
-                          <span className="text-gray-500">({rel.to_column})</span>
+                          <span className="text-[#8B8F98]">({rel.to_column})</span>
                         </div>
                       </div>
                     ))}

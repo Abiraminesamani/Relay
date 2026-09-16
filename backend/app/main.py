@@ -31,9 +31,13 @@ app.add_middleware(
 )
 
 
+from app.db.migrations import run_database_migrations
+
+
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
+    run_database_migrations(engine)
     db = SessionLocal()
     try:
         seed_agents(db)

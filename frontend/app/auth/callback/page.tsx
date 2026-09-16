@@ -78,17 +78,17 @@ export default function AuthCallbackPage() {
   }, []);
 
   return (
-    <div className="auth-bg min-h-screen flex items-center justify-center p-6 text-gray-100">
-      <div className="max-w-md w-full rounded-2xl glass-panel-deep p-8 border border-white/10 text-center space-y-4 shadow-2xl">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white mx-auto shadow-lg glow-indigo">
+    <div className="min-h-screen bg-[#08090A] flex items-center justify-center p-6 text-[#F5F5F5]">
+      <div className="max-w-md w-full rounded-2xl bg-[#111214] p-8 border border-[#24262A] text-center space-y-5 shadow-2xl">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#6366F1] text-white mx-auto shadow-md">
           <Zap className="w-6 h-6 text-white" />
         </div>
 
         {status === "processing" && (
           <div className="space-y-3">
-            <h2 className="text-lg font-bold text-white">Completing Google Sign-in...</h2>
-            <div className="flex justify-center items-center gap-2 text-xs text-indigo-300">
-              <div className="h-4 w-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+            <h2 className="text-lg font-bold text-[#F5F5F5]">Completing Google Sign-in...</h2>
+            <div className="flex justify-center items-center gap-2 text-xs text-[#8B8F98]">
+              <div className="h-4 w-4 rounded-full border-2 border-[#6366F1] border-t-transparent animate-spin" />
               <span>Verifying credentials with Relay Security Engine...</span>
             </div>
           </div>
@@ -96,21 +96,21 @@ export default function AuthCallbackPage() {
 
         {status === "success" && (
           <div className="space-y-3">
-            <div className="flex items-center justify-center gap-2 text-emerald-400">
+            <div className="flex items-center justify-center gap-2 text-[#22C55E]">
               <CheckCircle2 className="w-5 h-5" />
               <h2 className="text-lg font-bold">Authentication Successful!</h2>
             </div>
-            <p className="text-xs text-gray-300">Redirecting to Relay Dashboard...</p>
+            <p className="text-xs text-[#8B8F98]">Redirecting to Relay Dashboard...</p>
           </div>
         )}
 
         {status === "error" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-center gap-2 text-red-400">
+            <div className="flex items-center justify-center gap-2 text-[#EF4444]">
               <AlertCircle className="w-5 h-5" />
               <h2 className="text-lg font-bold">Authentication Failed</h2>
             </div>
-            <p className="text-xs text-red-300/90 leading-relaxed bg-red-950/60 p-3 rounded-xl border border-red-800/40">
+            <p className="text-xs text-[#EF4444] leading-relaxed bg-[#EF4444]/10 p-3 rounded-xl border border-[#EF4444]/30">
               {errorMessage}
             </p>
             <button
@@ -121,7 +121,7 @@ export default function AuthCallbackPage() {
                   window.location.href = "/";
                 }
               }}
-              className="w-full rounded-xl bg-white/10 hover:bg-white/15 py-2.5 text-xs font-semibold text-white transition flex items-center justify-center gap-2"
+              className="w-full rounded-xl bg-[#17181B] hover:bg-[#24262A] border border-[#24262A] py-2.5 text-xs font-semibold text-[#F5F5F5] transition flex items-center justify-center gap-2"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Sign In</span>

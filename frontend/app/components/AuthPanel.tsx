@@ -320,21 +320,21 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
   }
 
   return (
-    <div className="auth-bg min-h-screen flex flex-col justify-between p-6 lg:p-12 text-gray-100">
+    <div className="min-h-screen bg-[#08090A] flex flex-col justify-between p-6 lg:p-12 text-[#F5F5F5] selection:bg-[#6366F1] selection:text-white">
       {/* Top Brand Nav */}
       <header className="flex items-center justify-between max-w-7xl w-full mx-auto">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white shadow-lg glow-indigo">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#6366F1] text-white shadow-md">
             <Zap className="w-5 h-5 text-white" />
           </div>
           <div className="flex flex-col">
-            <span className="text-base font-black tracking-wider text-white uppercase">RELAY</span>
-            <span className="text-[10px] text-gray-400 font-medium tracking-wide">ENGINEERING COPILOT</span>
+            <span className="text-base font-black tracking-wider text-[#F5F5F5] uppercase">RELAY</span>
+            <span className="text-[10px] text-[#8B8F98] font-medium tracking-wide">ENGINEERING COPILOT</span>
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 rounded-full bg-white/[0.04] border border-white/10 px-4 py-1.5 text-xs text-gray-300 backdrop-blur-md">
-          <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+        <div className="hidden sm:flex items-center gap-2 rounded-full bg-[#111214] border border-[#24262A] px-4 py-1.5 text-xs text-[#8B8F98]">
+          <ShieldCheck className="w-3.5 h-3.5 text-[#6366F1]" />
           <span className="font-medium">Enterprise Intelligence Platform</span>
         </div>
       </header>
@@ -344,53 +344,52 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
         {/* Left Hero Section */}
         <div className="lg:col-span-7 space-y-6">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 text-xs text-indigo-300 font-medium">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#111214] border border-[#24262A] px-3 py-1 text-xs text-[#8B8F98] font-medium">
+              <Sparkles className="w-3.5 h-3.5 text-[#6366F1]" />
               <span>Multi-Agent AI for Modern Software Teams</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-[#F5F5F5] leading-tight">
               Next-Generation{" "}
-              <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <span className="text-[#6366F1]">
                 AI Engineering Intelligence
               </span>
             </h1>
-            <p className="text-sm sm:text-base text-gray-400 max-w-xl leading-relaxed">
+            <p className="text-sm sm:text-base text-[#8B8F98] max-w-xl leading-relaxed">
               Relay indexes your repositories, automates code review pipelines, correlates CI/CD failures, and provides deep semantic codebase reasoning.
             </p>
           </div>
 
           {/* Feature Chips */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-lg">
-            <div className="flex items-center gap-3 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200 border border-white/10">
-              <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+            <div className="flex items-center gap-3 rounded-xl bg-[#111214] hover:bg-[#17181B] px-3.5 py-2.5 text-xs text-[#F5F5F5] border border-[#24262A] transition">
+              <div className="p-1.5 rounded-lg bg-[#0C0D0F] border border-[#24262A] text-[#6366F1]">
                 <Bot className="w-4 h-4" />
               </div>
               <span className="font-medium">Multi-Agent AI Assistance</span>
             </div>
-            <div className="flex items-center gap-3 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200 border border-white/10">
-              <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400">
+            <div className="flex items-center gap-3 rounded-xl bg-[#111214] hover:bg-[#17181B] px-3.5 py-2.5 text-xs text-[#F5F5F5] border border-[#24262A] transition">
+              <div className="p-1.5 rounded-lg bg-[#0C0D0F] border border-[#24262A] text-[#8B8F98]">
                 <Brain className="w-4 h-4" />
               </div>
               <span className="font-medium">Deep Code & AST Retrieval</span>
             </div>
-            <div className="flex items-center gap-3 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200 border border-white/10">
-              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+            <div className="flex items-center gap-3 rounded-xl bg-[#111214] hover:bg-[#17181B] px-3.5 py-2.5 text-xs text-[#F5F5F5] border border-[#24262A] transition">
+              <div className="p-1.5 rounded-lg bg-[#0C0D0F] border border-[#24262A] text-[#F59E0B]">
                 <Workflow className="w-4 h-4" />
               </div>
               <span className="font-medium">CI/CD Failure Correlation</span>
             </div>
-            <div className="flex items-center gap-3 rounded-xl glass-card px-3.5 py-2.5 text-xs text-gray-200 border border-white/10">
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <div className="flex items-center gap-3 rounded-xl bg-[#111214] hover:bg-[#17181B] px-3.5 py-2.5 text-xs text-[#F5F5F5] border border-[#24262A] transition">
+              <div className="p-1.5 rounded-lg bg-[#0C0D0F] border border-[#24262A] text-[#22C55E]">
                 <BarChart3 className="w-4 h-4" />
               </div>
               <span className="font-medium">Real-Time Repository Insights</span>
             </div>
           </div>
 
-          {/* 3D Robot Illustration with Pedestal Glow */}
-          <div className="relative max-w-md w-full rounded-2xl overflow-hidden glass-panel p-2 shadow-2xl border border-white/10 group">
-            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600/20 via-purple-600/10 to-transparent pointer-events-none rounded-2xl" />
-            <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full rounded-xl overflow-hidden bg-black/40">
+          {/* 3D Robot Illustration with Pedestal */}
+          <div className="relative max-w-md w-full rounded-2xl overflow-hidden bg-[#111214] p-2 shadow-2xl border border-[#24262A] group">
+            <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full rounded-xl overflow-hidden bg-[#0C0D0F]">
               <Image
                 src="/ai_robot_avatar.jpg"
                 alt="Relay AI Engineering Assistant"
@@ -402,35 +401,32 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
           </div>
 
           {/* Trust Badges */}
-          <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-gray-400">
+          <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-[#8B8F98]">
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E]" />
               <span>SOC 2 Compliant</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-indigo-400" />
+              <Lock className="w-3.5 h-3.5 text-[#6366F1]" />
               <span>256-Bit TLS Encryption</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5 text-purple-400" />
+              <Cpu className="w-3.5 h-3.5 text-[#8B8F98]" />
               <span>99.9% Production SLA</span>
             </div>
           </div>
         </div>
 
-        {/* Right Glass Auth Card */}
+        {/* Right Auth Card */}
         <div className="lg:col-span-5 w-full">
-          <div className="rounded-3xl glass-panel-deep p-8 shadow-2xl border border-white/10 relative overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
-
+          <div className="rounded-2xl bg-[#0C0D0F] p-8 shadow-2xl border border-[#24262A] relative">
             <div className="relative z-10 space-y-6">
               {/* Card Title */}
               <div className="text-left space-y-1">
-                <h2 className="text-2xl font-bold text-white tracking-tight">
+                <h2 className="text-2xl font-bold text-[#F5F5F5] tracking-tight">
                   {mode === "login" ? "Welcome back" : "Create your account"}
                 </h2>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-[#8B8F98]">
                   {mode === "login" ? "Sign in to access your engineering workspace" : "Register to accelerate your software delivery"}
                 </p>
               </div>
@@ -442,7 +438,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                   id="google-signin-btn"
                   onClick={handleGoogleButtonClick}
                   disabled={loading}
-                  className="w-full rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 px-4 py-2.5 text-xs font-semibold text-white transition flex items-center justify-center gap-3 active:scale-[0.98] shadow-md hover:border-indigo-400/60"
+                  className="w-full rounded-xl bg-[#111214] hover:bg-[#17181B] border border-[#24262A] hover:border-[#6366F1]/50 px-4 py-2.5 text-xs font-semibold text-[#F5F5F5] transition flex items-center justify-center gap-3 active:scale-[0.98] shadow-sm"
                 >
                   <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                     <path
@@ -465,12 +461,12 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                   <span>Continue with Google</span>
                 </button>
 
-                <div className="flex items-center justify-between text-[11px] text-gray-400 px-1">
+                <div className="flex items-center justify-between text-[11px] text-[#8B8F98] px-1">
                   <span>Popups blocked?</span>
                   <button
                     type="button"
                     onClick={() => setIsGoogleModalOpen(true)}
-                    className="text-indigo-400 hover:text-indigo-300 font-medium transition underline underline-offset-2"
+                    className="text-[#6366F1] hover:text-[#818CF8] font-medium transition underline underline-offset-2"
                   >
                     Alternative Google sign-in
                   </button>
@@ -479,23 +475,23 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
 
               {/* Status Indicator */}
               {googleStatus && (
-                <div className="flex items-center gap-2 rounded-xl bg-indigo-950/60 border border-indigo-500/40 px-3.5 py-2 text-xs text-indigo-300">
-                  <div className="h-3 w-3 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+                <div className="flex items-center gap-2 rounded-xl bg-[#111214] border border-[#6366F1]/40 px-3.5 py-2 text-xs text-[#6366F1]">
+                  <div className="h-3 w-3 rounded-full border-2 border-[#6366F1] border-t-transparent animate-spin" />
                   <span>{googleStatus}</span>
                 </div>
               )}
 
               {/* Divider */}
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-white/10" />
-                <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">or email</span>
-                <div className="flex-1 h-px bg-white/10" />
+                <div className="flex-1 h-px bg-[#24262A]" />
+                <span className="text-[10px] text-[#8B8F98] uppercase tracking-widest font-semibold">or email</span>
+                <div className="flex-1 h-px bg-[#24262A]" />
               </div>
 
               {/* Error Alert */}
               {error && (
-                <div className="flex items-start gap-2 rounded-xl bg-red-950/70 border border-red-800/60 p-3 text-xs text-red-300 leading-relaxed shadow-sm">
-                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30 p-3 text-xs text-[#EF4444] leading-relaxed shadow-sm">
+                  <AlertCircle className="w-4 h-4 text-[#EF4444] flex-shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
               )}
@@ -504,7 +500,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {mode === "register" && (
                   <div>
-                    <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[11px] font-semibold text-[#8B8F98] uppercase tracking-wider mb-1.5">
                       Full Name
                     </label>
                     <input
@@ -513,13 +509,13 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Alex Developer"
-                      className="w-full rounded-xl border border-white/10 bg-gray-900/90 px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                      className="w-full rounded-xl border border-[#24262A] bg-[#111214] px-3.5 py-2.5 text-xs text-[#F5F5F5] placeholder-[#8B8F98]/60 outline-none focus:border-[#6366F1] transition"
                     />
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-semibold text-[#8B8F98] uppercase tracking-wider mb-1.5">
                     Email Address
                   </label>
                   <input
@@ -528,20 +524,20 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="alex@company.com"
-                    className="w-full rounded-xl border border-white/10 bg-gray-900/90 px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                    className="w-full rounded-xl border border-[#24262A] bg-[#111214] px-3.5 py-2.5 text-xs text-[#F5F5F5] placeholder-[#8B8F98]/60 outline-none focus:border-[#6366F1] transition"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider">
+                    <label className="block text-[11px] font-semibold text-[#8B8F98] uppercase tracking-wider">
                       Password
                     </label>
                     {mode === "login" && (
                       <button
                         type="button"
                         onClick={() => setError("Password reset instructions have been dispatched to your email address")}
-                        className="text-[11px] text-indigo-400 hover:text-indigo-300 transition"
+                        className="text-[11px] text-[#6366F1] hover:text-[#818CF8] transition"
                       >
                         Forgot password?
                       </button>
@@ -554,14 +550,14 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full rounded-xl border border-white/10 bg-gray-900/90 px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                    className="w-full rounded-xl border border-[#24262A] bg-[#111214] px-3.5 py-2.5 text-xs text-[#F5F5F5] placeholder-[#8B8F98]/60 outline-none focus:border-[#6366F1] transition"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 py-3 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 active:scale-[0.99] disabled:opacity-50 transition shadow-lg glow-indigo flex items-center justify-center gap-2"
+                  className="w-full mt-2 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] py-3 text-xs font-bold text-white active:scale-[0.99] disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2"
                 >
                   <span>{loading ? "Processing..." : mode === "login" ? "Sign In to Relay" : "Create Account"}</span>
                   {!loading && <ArrowRight className="w-3.5 h-3.5" />}
@@ -576,17 +572,17 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                     setMode(mode === "login" ? "register" : "login");
                     setError(null);
                   }}
-                  className="text-xs text-gray-400 hover:text-gray-200 transition"
+                  className="text-xs text-[#8B8F98] hover:text-[#F5F5F5] transition"
                 >
                   {mode === "login" ? (
                     <>
                       Don&apos;t have an account?{" "}
-                      <span className="text-indigo-400 font-semibold hover:underline">Create an account</span>
+                      <span className="text-[#6366F1] font-semibold hover:underline">Create an account</span>
                     </>
                   ) : (
                     <>
                       Already have an account?{" "}
-                      <span className="text-indigo-400 font-semibold hover:underline">Sign in</span>
+                      <span className="text-[#6366F1] font-semibold hover:underline">Sign in</span>
                     </>
                   )}
                 </button>
@@ -598,22 +594,22 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
 
       {/* Google OAuth Modal */}
       {isGoogleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="w-full max-w-md rounded-2xl glass-panel-deep p-6 border border-white/15 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0C0D0F] p-6 border border-[#24262A] shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#24262A]">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-indigo-400" />
-                <h3 className="text-sm font-bold text-white">Google OAuth Authentication</h3>
+                <ShieldCheck className="w-4 h-4 text-[#6366F1]" />
+                <h3 className="text-sm font-bold text-[#F5F5F5]">Google OAuth Authentication</h3>
               </div>
               <button
                 onClick={() => setIsGoogleModalOpen(false)}
-                className="text-gray-400 hover:text-white p-1 rounded-lg transition"
+                className="text-[#8B8F98] hover:text-[#F5F5F5] p-1 rounded-lg transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-gray-300">
+            <p className="text-xs text-[#8B8F98]">
               Select your preferred authentication method:
             </p>
 
@@ -621,20 +617,20 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
               <button
                 type="button"
                 onClick={openDirectGoogleOAuthPopup}
-                className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-2.5 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 shadow-md glow-indigo transition flex items-center justify-center gap-2"
+                className="w-full rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] py-2.5 text-xs font-bold text-white shadow-md transition flex items-center justify-center gap-2"
               >
                 <Zap className="w-3.5 h-3.5" />
                 <span>Open Google OAuth Consent Window</span>
               </button>
 
               <div className="flex items-center gap-2 my-2">
-                <div className="flex-1 h-px bg-white/10" />
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider">or direct email authorization</span>
-                <div className="flex-1 h-px bg-white/10" />
+                <div className="flex-1 h-px bg-[#24262A]" />
+                <span className="text-[10px] text-[#8B8F98] uppercase tracking-wider">or direct email authorization</span>
+                <div className="flex-1 h-px bg-[#24262A]" />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-semibold text-[#8B8F98] uppercase tracking-wider mb-1">
                   Google Workspace / Gmail Address
                 </label>
                 <div className="flex gap-2">
@@ -643,13 +639,13 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                     value={googleCustomEmail}
                     onChange={(e) => setGoogleCustomEmail(e.target.value)}
                     placeholder="alex.developer@gmail.com"
-                    className="flex-1 rounded-xl border border-white/10 bg-gray-900 px-3.5 py-2 text-xs text-white placeholder-gray-500 outline-none focus:border-indigo-500"
+                    className="flex-1 rounded-xl border border-[#24262A] bg-[#111214] px-3.5 py-2 text-xs text-[#F5F5F5] placeholder-[#8B8F98]/60 outline-none focus:border-[#6366F1]"
                   />
                   <button
                     type="button"
                     onClick={() => handleGoogleDirectAuth(googleCustomEmail)}
                     disabled={loading || !googleCustomEmail}
-                    className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40 transition"
+                    className="rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40 transition"
                   >
                     Authorize
                   </button>
@@ -661,7 +657,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
                   type="button"
                   onClick={() => handleGoogleDirectAuth("alex.developer@gmail.com")}
                   disabled={loading}
-                  className="w-full rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/10 py-2 text-xs font-semibold text-gray-300 hover:text-white transition"
+                  className="w-full rounded-xl bg-[#111214] hover:bg-[#17181B] border border-[#24262A] py-2 text-xs font-semibold text-[#8B8F98] hover:text-[#F5F5F5] transition"
                 >
                   Developer Sandbox Demo (alex.developer@gmail.com)
                 </button>
@@ -672,7 +668,7 @@ export default function AuthPanel({ onAuthSuccess }: AuthPanelProps) {
       )}
 
       {/* Footer */}
-      <footer className="text-center text-[11px] text-gray-600 max-w-7xl w-full mx-auto pt-4">
+      <footer className="text-center text-[11px] text-[#8B8F98]/70 max-w-7xl w-full mx-auto pt-4">
         © 2026 Relay Engineering Platform. All rights reserved.
       </footer>
     </div>

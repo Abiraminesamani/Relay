@@ -80,7 +80,7 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#07080c] text-gray-100 flex flex-row selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen bg-[#08090A] text-[#F5F5F5] flex flex-row selection:bg-[#6366F1] selection:text-white">
       {/* Left Collapsible Navigation Sidebar */}
       <Sidebar
         user={user}
@@ -95,12 +95,12 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         {/* Top Header Navbar */}
-        <header className="sticky top-0 z-40 border-b border-white/5 bg-[#08090e]/80 backdrop-blur-xl px-6 py-3 flex items-center justify-between shadow-md">
+        <header className="sticky top-0 z-40 border-b border-[#24262A] bg-[#08090A]/95 backdrop-blur-xl px-6 py-2.5 flex items-center justify-between shadow-sm">
           {/* Active Navigation Path */}
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-gray-500 font-semibold uppercase tracking-wider">Relay</span>
-            <span className="text-gray-600">/</span>
-            <span className="font-bold text-white capitalize">
+            <span className="text-[#8B8F98] font-medium tracking-wide">Relay</span>
+            <span className="text-[#5C6068]">/</span>
+            <span className="font-semibold text-[#F5F5F5] capitalize">
               {activeTab === "home"
                 ? "Overview"
                 : activeTab === "chat"
@@ -118,13 +118,13 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
           </div>
 
           {/* Top Center Tab Pills */}
-          <nav className="hidden md:flex items-center gap-1 rounded-xl bg-white/[0.04] p-1 border border-white/5 text-xs font-semibold">
+          <nav className="hidden md:flex items-center gap-1 rounded-lg bg-[#111214] p-1 border border-[#24262A] text-xs font-medium">
             <button
               onClick={() => setActiveTab("home")}
-              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-md px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "home"
-                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
-                  : "text-gray-400 hover:text-gray-200"
+                  ? "bg-[#6366F1] text-[#F5F5F5]"
+                  : "text-[#8B8F98] hover:bg-[#17181B] hover:text-[#F5F5F5]"
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
@@ -132,10 +132,10 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
             </button>
             <button
               onClick={() => setActiveTab("chat")}
-              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-md px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "chat"
-                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
-                  : "text-gray-400 hover:text-gray-200"
+                  ? "bg-[#6366F1] text-[#F5F5F5]"
+                  : "text-[#8B8F98] hover:bg-[#17181B] hover:text-[#F5F5F5]"
               }`}
             >
               <Bot className="w-3.5 h-3.5" />
@@ -143,32 +143,32 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
             </button>
             <button
               onClick={() => setActiveTab("code")}
-              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-md px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "code"
-                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
-                  : "text-gray-400 hover:text-gray-200"
+                  ? "bg-[#6366F1] text-[#F5F5F5]"
+                  : "text-[#8B8F98] hover:bg-[#17181B] hover:text-[#F5F5F5]"
               }`}
             >
-              <Code2 className="w-3.5 h-3.5 text-emerald-400" />
+              <Code2 className="w-3.5 h-3.5" />
               <span>Code</span>
             </button>
             <button
               onClick={() => setActiveTab("architecture")}
-              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-md px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "architecture"
-                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
-                  : "text-gray-400 hover:text-gray-200"
+                  ? "bg-[#6366F1] text-[#F5F5F5]"
+                  : "text-[#8B8F98] hover:bg-[#17181B] hover:text-[#F5F5F5]"
               }`}
             >
-              <Network className="w-3.5 h-3.5 text-indigo-400" />
+              <Network className="w-3.5 h-3.5" />
               <span>Architecture</span>
             </button>
             <button
               onClick={() => setActiveTab("repos")}
-              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-md px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "repos"
-                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
-                  : "text-gray-400 hover:text-gray-200"
+                  ? "bg-[#6366F1] text-[#F5F5F5]"
+                  : "text-[#8B8F98] hover:bg-[#17181B] hover:text-[#F5F5F5]"
               }`}
             >
               <FolderGit2 className="w-3.5 h-3.5" />
@@ -176,21 +176,21 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
             </button>
             <button
               onClick={() => setActiveTab("integrations")}
-              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-md px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "integrations"
-                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
-                  : "text-gray-400 hover:text-gray-200"
+                  ? "bg-[#6366F1] text-[#F5F5F5]"
+                  : "text-[#8B8F98] hover:bg-[#17181B] hover:text-[#F5F5F5]"
               }`}
             >
-              <Webhook className="w-3.5 h-3.5 text-rose-400" />
+              <Webhook className="w-3.5 h-3.5" />
               <span>Webhooks</span>
             </button>
             <button
               onClick={() => setActiveTab("queries")}
-              className={`rounded-lg px-3 py-1.5 transition flex items-center gap-1.5 ${
+              className={`rounded-md px-3 py-1.5 transition flex items-center gap-1.5 ${
                 activeTab === "queries"
-                  ? "bg-indigo-600 text-white shadow-sm glow-indigo"
-                  : "text-gray-400 hover:text-gray-200"
+                  ? "bg-[#6366F1] text-[#F5F5F5]"
+                  : "text-[#8B8F98] hover:bg-[#17181B] hover:text-[#F5F5F5]"
               }`}
             >
               <History className="w-3.5 h-3.5" />
@@ -201,10 +201,10 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
           {/* User Profile Pill */}
           <div className="flex items-center gap-2.5">
             <div className="text-right hidden sm:block">
-              <div className="text-xs font-bold text-white">{user.name}</div>
-              <div className="text-[10px] text-gray-500">{user.email}</div>
+              <div className="text-xs font-semibold text-[#F5F5F5]">{user.name}</div>
+              <div className="text-[10px] text-[#8B8F98]">{user.email}</div>
             </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-xs ring-2 ring-indigo-500/40">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#17181B] border border-[#24262A] text-[#F5F5F5] font-semibold text-xs">
               {user.name.charAt(0).toUpperCase() || "A"}
             </div>
           </div>
@@ -271,41 +271,41 @@ export default function Dashboard({ token, user, onLogout }: DashboardProps) {
           {activeTab === "queries" && <QueryHistory token={token} />}
 
           {activeTab === "settings" && (
-            <div className="max-w-3xl mx-auto rounded-2xl glass-panel p-6 border border-white/10 space-y-6">
-              <div className="flex items-center gap-2 pb-2 border-b border-white/5">
-                <Settings className="w-5 h-5 text-indigo-400" />
-                <h2 className="text-xl font-bold text-white">Platform Settings</h2>
+            <div className="max-w-3xl mx-auto rounded-xl bg-[#111214] p-6 border border-[#24262A] space-y-6">
+              <div className="flex items-center gap-2 pb-3 border-b border-[#24262A]">
+                <Settings className="w-5 h-5 text-[#6366F1]" />
+                <h2 className="text-lg font-bold text-[#F5F5F5]">Platform Settings</h2>
               </div>
 
               <div className="space-y-4 text-xs">
-                <div className="p-4 rounded-xl glass-card border border-white/10 space-y-2">
-                  <div className="flex items-center gap-2 font-bold text-white text-sm">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <div className="p-4 rounded-lg bg-[#0C0D0F] border border-[#24262A] space-y-2">
+                  <div className="flex items-center gap-2 font-semibold text-[#F5F5F5] text-sm">
+                    <ShieldCheck className="w-4 h-4 text-[#22C55E]" />
                     <span>Account & Security</span>
                   </div>
-                  <p className="text-gray-400">Signed in as {user.name} ({user.email})</p>
-                  <div className="text-emerald-400 text-[11px] font-semibold flex items-center gap-1">
+                  <p className="text-[#8B8F98]">Signed in as {user.name} ({user.email})</p>
+                  <div className="text-[#22C55E] text-[11px] font-medium flex items-center gap-1">
                     <Lock className="w-3 h-3" />
                     <span>JWT Session Authenticated</span>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl glass-card border border-white/10 space-y-2">
-                  <div className="flex items-center gap-2 font-bold text-white text-sm">
-                    <Cpu className="w-4 h-4 text-purple-400" />
+                <div className="p-4 rounded-lg bg-[#0C0D0F] border border-[#24262A] space-y-2">
+                  <div className="flex items-center gap-2 font-semibold text-[#F5F5F5] text-sm">
+                    <Cpu className="w-4 h-4 text-[#8B8F98]" />
                     <span>Multi-Agent RAG Engine</span>
                   </div>
-                  <p className="text-gray-400">ChromaDB Vector Store: Active</p>
-                  <p className="text-gray-400">Embedding Engine: 128-dim FastCodeEmbeddingFunction</p>
-                  <p className="text-gray-400">LLM Provider: OpenRouter (gpt-4o-mini)</p>
+                  <p className="text-[#8B8F98]">ChromaDB Vector Store: Active</p>
+                  <p className="text-[#8B8F98]">Embedding Engine: 128-dim FastCodeEmbeddingFunction</p>
+                  <p className="text-[#8B8F98]">LLM Provider: OpenRouter (gpt-4o-mini)</p>
                 </div>
 
-                <div className="p-4 rounded-xl glass-card border border-white/10 space-y-2">
-                  <div className="flex items-center gap-2 font-bold text-white text-sm">
-                    <FolderGit2 className="w-4 h-4 text-indigo-400" />
+                <div className="p-4 rounded-lg bg-[#0C0D0F] border border-[#24262A] space-y-2">
+                  <div className="flex items-center gap-2 font-semibold text-[#F5F5F5] text-sm">
+                    <FolderGit2 className="w-4 h-4 text-[#6366F1]" />
                     <span>Active Repository Scope</span>
                   </div>
-                  <p className="text-gray-400">{selectedRepoUrl || "Default configured repository in .env"}</p>
+                  <p className="text-[#8B8F98]">{selectedRepoUrl || "Default configured repository in .env"}</p>
                 </div>
               </div>
             </div>

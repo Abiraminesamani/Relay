@@ -214,39 +214,30 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
   const selectedRepo = repositories.find((r) => r.id === selectedRepoId);
 
   return (
-    <div className="flex h-[calc(100vh-100px)] flex-col rounded-2xl glass-panel shadow-2xl overflow-hidden border border-white/10">
-      {/* Header Controls Bar */}
-      <div className="border-b border-white/5 bg-[#0a0c13]/90 px-5 py-3 flex flex-wrap items-center justify-between gap-3 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400 font-bold border border-indigo-500/20">
-            <Code2 className="w-4 h-4" />
+    <div className="flex h-[calc(100vh-90px)] flex-col rounded-xl bg-[#0C0D0F] shadow-xl overflow-hidden border border-[#24262A]">
+      {/* Top Header Bar */}
+      <div className="border-b border-[#24262A] bg-[#0C0D0F] px-5 py-2.5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#111214] border border-[#24262A] text-[#6366F1] text-xs">
+            <Code2 className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xs font-bold text-white tracking-wide">
-                Code Explorer & Inline AI Assistant
-              </h2>
-              <span className="rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 text-[9px] font-semibold">
-                Live AST Inspector
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-400">
-              Browse repository tree, highlight code snippets, and invoke instant AI refactoring
-            </p>
+            <h2 className="text-xs font-semibold text-[#F5F5F5]">Code Explorer & Inline AI</h2>
+            <p className="text-[10px] text-[#8B8F98]">Live AST parsing & code comprehension</p>
           </div>
         </div>
 
-        {/* Repository Dropdown */}
+        {/* Top Controls: Repository Picker & AI Assistant Action */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] px-2.5 py-1.5 border border-white/10 text-xs">
-            <FolderGit2 className="w-3.5 h-3.5 text-indigo-400" />
+          <div className="flex items-center gap-1.5 rounded-lg bg-[#111214] px-2.5 py-1.5 border border-[#24262A] text-xs">
+            <FolderGit2 className="w-3.5 h-3.5 text-[#8B8F98]" />
             <select
               value={selectedRepoId || ""}
               onChange={(e) => setSelectedRepoId(Number(e.target.value))}
-              className="bg-transparent text-gray-200 outline-none cursor-pointer text-xs font-medium max-w-[180px] truncate"
+              className="bg-transparent text-[#F5F5F5] outline-none cursor-pointer text-xs font-medium max-w-[160px] truncate"
             >
               {repositories.map((r) => (
-                <option key={r.id} value={r.id} className="bg-gray-950 text-white">
+                <option key={r.id} value={r.id} className="bg-[#111214] text-[#F5F5F5]">
                   {r.name}
                 </option>
               ))}
@@ -255,7 +246,7 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
 
           <button
             onClick={() => runInlineAssist("explain")}
-            className="rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 shadow-md glow-indigo flex items-center gap-1.5 transition"
+            className="rounded-md bg-[#6366F1] hover:bg-[#4F46E5] px-3 py-1.5 text-xs font-semibold text-[#F5F5F5] flex items-center gap-1.5 transition"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>AI Code Assistant</span>
@@ -266,28 +257,28 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
       {/* Main 3-Pane Body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Pane: File Tree Explorer (Width 280px) */}
-        <aside className="w-72 flex-shrink-0 border-r border-white/5 bg-[#080a10]/80 p-3 flex flex-col space-y-3">
+        <aside className="w-72 flex-shrink-0 border-r border-[#24262A] bg-[#0C0D0F] p-3 flex flex-col space-y-3">
           {/* File Search Filter */}
-          <div className="flex items-center gap-2 rounded-xl bg-gray-900/90 border border-white/10 px-3 py-1.5 text-xs">
-            <Search className="w-3.5 h-3.5 text-gray-500" />
+          <div className="flex items-center gap-2 rounded-lg bg-[#111214] border border-[#24262A] px-3 py-1.5 text-xs">
+            <Search className="w-3.5 h-3.5 text-[#5C6068]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search files in repo..."
-              className="bg-transparent text-white placeholder-gray-500 outline-none w-full text-xs"
+              className="bg-transparent text-[#F5F5F5] placeholder-[#5C6068] outline-none w-full text-xs"
             />
           </div>
 
           {/* File Tree List */}
           <div className="flex-1 overflow-y-auto space-y-0.5 pr-1">
             {loadingTree ? (
-              <div className="py-8 text-center text-xs text-gray-500 flex flex-col items-center gap-2">
-                <div className="h-4 w-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+              <div className="py-8 text-center text-xs text-[#8B8F98] flex flex-col items-center gap-2">
+                <div className="h-4 w-4 rounded-full border-2 border-[#6366F1] border-t-transparent animate-spin" />
                 <span>Reading repository tree...</span>
               </div>
             ) : filteredTree.length === 0 ? (
-              <div className="py-8 text-center text-xs text-gray-500">No matching files found.</div>
+              <div className="py-8 text-center text-xs text-[#8B8F98]">No matching files found.</div>
             ) : (
               filteredTree.map((node) => {
                 const isSelected = node.path === activeFilePath;
@@ -303,23 +294,23 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
                         loadFile(node.path);
                       }
                     }}
-                    className={`w-full text-left rounded-lg px-2 py-1.5 text-xs transition flex items-center justify-between group ${
+                    className={`w-full text-left rounded-md px-2 py-1.5 text-xs transition flex items-center justify-between group ${
                       isSelected
-                        ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold"
-                        : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
+                        ? "bg-[#17181B] text-[#F5F5F5] border border-[#24262A] font-medium"
+                        : "text-[#8B8F98] hover:bg-[#17181B] hover:text-[#F5F5F5]"
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate min-w-0">
                       {isDir ? (
-                        <Folder className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                        <Folder className="w-3.5 h-3.5 text-[#8B8F98] flex-shrink-0" />
                       ) : (
-                        <FileCode className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                        <FileCode className="w-3.5 h-3.5 text-[#8B8F98] flex-shrink-0" />
                       )}
                       <span className="truncate">{node.path}</span>
                     </div>
 
                     {node.size ? (
-                      <span className="text-[9px] text-gray-600 font-mono flex-shrink-0 ml-1">
+                      <span className="text-[9px] text-[#5C6068] font-mono flex-shrink-0 ml-1">
                         {node.size > 1024 ? `${Math.round(node.size / 1024)}k` : `${node.size}b`}
                       </span>
                     ) : null}
@@ -331,14 +322,14 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
         </aside>
 
         {/* Center Pane: Code Viewer */}
-        <main className="flex-1 flex flex-col min-w-0 bg-[#06080e]/95 overflow-hidden">
+        <main className="flex-1 flex flex-col min-w-0 bg-[#08090A] overflow-hidden">
           {/* File Header Bar */}
-          <div className="border-b border-white/5 bg-[#090b12] px-4 py-2 flex items-center justify-between text-xs">
+          <div className="border-b border-[#24262A] bg-[#0C0D0F] px-4 py-2 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2 min-w-0">
-              <FileCode className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-              <span className="font-mono font-bold text-white truncate">{activeFilePath || "No file selected"}</span>
+              <FileCode className="w-3.5 h-3.5 text-[#8B8F98] flex-shrink-0" />
+              <span className="font-mono font-medium text-[#F5F5F5] truncate">{activeFilePath || "No file selected"}</span>
               {fileMetadata && (
-                <span className="text-[10px] text-gray-500 font-mono">
+                <span className="text-[10px] text-[#5C6068] font-mono">
                   ({fileMetadata.lines} lines • {fileMetadata.language})
                 </span>
               )}
@@ -347,9 +338,9 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleCopy(fileContent)}
-                className="rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 px-2.5 py-1 text-[11px] font-medium text-gray-300 hover:text-white transition flex items-center gap-1"
+                className="rounded-md bg-[#111214] hover:bg-[#17181B] border border-[#24262A] px-2.5 py-1 text-[11px] font-medium text-[#8B8F98] hover:text-[#F5F5F5] transition flex items-center gap-1"
               >
-                {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                {copied ? <Check className="w-3 h-3 text-[#22C55E]" /> : <Copy className="w-3 h-3" />}
                 <span>{copied ? "Copied" : "Copy File"}</span>
               </button>
             </div>
@@ -357,9 +348,9 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
 
           {/* Floating Contextual Toolbar when code is highlighted */}
           {selectedText.length > 5 && (
-            <div className="bg-indigo-950/90 border-b border-indigo-500/30 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs backdrop-blur-md animate-fade-in">
-              <div className="flex items-center gap-2 text-indigo-300">
-                <Sparkles className="w-3.5 h-3.5" />
+            <div className="bg-[#111214] border-b border-[#24262A] px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 text-[#F5F5F5]">
+                <Sparkles className="w-3.5 h-3.5 text-[#6366F1]" />
                 <span className="font-medium">
                   {selectedText.split("\n").length} lines selected
                 </span>
@@ -368,30 +359,30 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => runInlineAssist("explain")}
-                  className="rounded-lg bg-indigo-600/80 hover:bg-indigo-600 px-2.5 py-1 text-[11px] font-semibold text-white transition flex items-center gap-1"
+                  className="rounded-md bg-[#6366F1] hover:bg-[#4F46E5] px-2.5 py-1 text-[11px] font-medium text-[#F5F5F5] transition flex items-center gap-1"
                 >
                   <Layers className="w-3 h-3" />
                   <span>Explain</span>
                 </button>
                 <button
                   onClick={() => runInlineAssist("refactor")}
-                  className="rounded-lg bg-purple-600/80 hover:bg-purple-600 px-2.5 py-1 text-[11px] font-semibold text-white transition flex items-center gap-1"
+                  className="rounded-md bg-[#17181B] hover:bg-[#24262A] border border-[#24262A] px-2.5 py-1 text-[11px] font-medium text-[#F5F5F5] transition flex items-center gap-1"
                 >
-                  <Zap className="w-3 h-3" />
+                  <Zap className="w-3 h-3 text-[#8B8F98]" />
                   <span>Refactor</span>
                 </button>
                 <button
                   onClick={() => runInlineAssist("generate_tests")}
-                  className="rounded-lg bg-cyan-600/80 hover:bg-cyan-600 px-2.5 py-1 text-[11px] font-semibold text-white transition flex items-center gap-1"
+                  className="rounded-md bg-[#17181B] hover:bg-[#24262A] border border-[#24262A] px-2.5 py-1 text-[11px] font-medium text-[#F5F5F5] transition flex items-center gap-1"
                 >
-                  <Play className="w-3 h-3" />
+                  <Play className="w-3 h-3 text-[#8B8F98]" />
                   <span>Generate Tests</span>
                 </button>
                 <button
                   onClick={() => runInlineAssist("security_scan")}
-                  className="rounded-lg bg-rose-600/80 hover:bg-rose-600 px-2.5 py-1 text-[11px] font-semibold text-white transition flex items-center gap-1"
+                  className="rounded-md bg-[#17181B] hover:bg-[#24262A] border border-[#24262A] px-2.5 py-1 text-[11px] font-medium text-[#F5F5F5] transition flex items-center gap-1"
                 >
-                  <ShieldAlert className="w-3 h-3" />
+                  <ShieldAlert className="w-3 h-3 text-[#8B8F98]" />
                   <span>Security Audit</span>
                 </button>
               </div>
@@ -400,7 +391,7 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
 
           {/* Code Viewer Canvas */}
           <div
-            className="flex-1 overflow-auto p-4 font-mono text-xs text-gray-200 leading-relaxed select-text"
+            className="flex-1 overflow-auto p-4 font-mono text-xs text-[#F5F5F5] leading-relaxed select-text"
             onMouseUp={() => {
               const sel = window.getSelection()?.toString() || "";
               if (sel.trim().length > 3) {
@@ -409,19 +400,19 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
             }}
           >
             {loadingFile ? (
-              <div className="py-16 text-center text-xs text-gray-500 flex flex-col items-center gap-2">
-                <div className="h-4 w-4 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+              <div className="py-16 text-center text-xs text-[#8B8F98] flex flex-col items-center gap-2">
+                <div className="h-4 w-4 rounded-full border-2 border-[#6366F1] border-t-transparent animate-spin" />
                 <span>Loading source code...</span>
               </div>
             ) : (
               <table className="w-full border-collapse">
                 <tbody>
                   {fileContent.split("\n").map((line, idx) => (
-                    <tr key={idx} className="hover:bg-white/[0.03] transition-colors">
-                      <td className="w-10 pr-4 text-right select-none text-gray-600 font-mono text-[11px]">
+                    <tr key={idx} className="hover:bg-[#17181B] transition-colors">
+                      <td className="w-10 pr-4 text-right select-none text-[#5C6068] font-mono text-[11px]">
                         {idx + 1}
                       </td>
-                      <td className="whitespace-pre overflow-x-auto text-gray-200 font-mono text-[12px]">
+                      <td className="whitespace-pre overflow-x-auto text-[#F5F5F5] font-mono text-[12px]">
                         {line || " "}
                       </td>
                     </tr>
@@ -434,18 +425,18 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
 
         {/* Right Pane: Inline AI Assistant Response Drawer */}
         {isAiPanelOpen && (
-          <aside className="w-96 flex-shrink-0 border-l border-white/10 bg-[#090c14]/95 p-4 flex flex-col justify-between shadow-2xl backdrop-blur-2xl">
+          <aside className="w-96 flex-shrink-0 border-l border-[#24262A] bg-[#0C0D0F] p-4 flex flex-col justify-between shadow-xl">
             <div className="space-y-4 overflow-y-auto pr-1 flex-1">
-              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center justify-between pb-2 border-b border-[#24262A]">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-indigo-400" />
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-[#6366F1]" />
+                  <h3 className="text-xs font-semibold text-[#F5F5F5] uppercase tracking-wider">
                     Inline AI Assistant
                   </h3>
                 </div>
                 <button
                   onClick={() => setIsAiPanelOpen(false)}
-                  className="text-gray-400 hover:text-white p-1 rounded-lg"
+                  className="text-[#8B8F98] hover:text-[#F5F5F5] p-1 rounded-md"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -455,10 +446,10 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
               <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                 <button
                   onClick={() => runInlineAssist("explain")}
-                  className={`rounded-lg p-2 font-semibold transition flex items-center justify-center gap-1.5 ${
+                  className={`rounded-md p-2 font-medium transition flex items-center justify-center gap-1.5 ${
                     aiAction === "explain"
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "bg-white/[0.04] text-gray-400 hover:text-white"
+                      ? "bg-[#6366F1] text-[#F5F5F5]"
+                      : "bg-[#111214] border border-[#24262A] text-[#8B8F98] hover:text-[#F5F5F5] hover:bg-[#17181B]"
                   }`}
                 >
                   <Layers className="w-3 h-3" />
@@ -466,10 +457,10 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
                 </button>
                 <button
                   onClick={() => runInlineAssist("refactor")}
-                  className={`rounded-lg p-2 font-semibold transition flex items-center justify-center gap-1.5 ${
+                  className={`rounded-md p-2 font-medium transition flex items-center justify-center gap-1.5 ${
                     aiAction === "refactor"
-                      ? "bg-purple-600 text-white shadow-sm"
-                      : "bg-white/[0.04] text-gray-400 hover:text-white"
+                      ? "bg-[#6366F1] text-[#F5F5F5]"
+                      : "bg-[#111214] border border-[#24262A] text-[#8B8F98] hover:text-[#F5F5F5] hover:bg-[#17181B]"
                   }`}
                 >
                   <Zap className="w-3 h-3" />
@@ -477,10 +468,10 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
                 </button>
                 <button
                   onClick={() => runInlineAssist("generate_tests")}
-                  className={`rounded-lg p-2 font-semibold transition flex items-center justify-center gap-1.5 ${
+                  className={`rounded-md p-2 font-medium transition flex items-center justify-center gap-1.5 ${
                     aiAction === "generate_tests"
-                      ? "bg-cyan-600 text-white shadow-sm"
-                      : "bg-white/[0.04] text-gray-400 hover:text-white"
+                      ? "bg-[#6366F1] text-[#F5F5F5]"
+                      : "bg-[#111214] border border-[#24262A] text-[#8B8F98] hover:text-[#F5F5F5] hover:bg-[#17181B]"
                   }`}
                 >
                   <Play className="w-3 h-3" />
@@ -488,10 +479,10 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
                 </button>
                 <button
                   onClick={() => runInlineAssist("security_scan")}
-                  className={`rounded-lg p-2 font-semibold transition flex items-center justify-center gap-1.5 ${
+                  className={`rounded-md p-2 font-medium transition flex items-center justify-center gap-1.5 ${
                     aiAction === "security_scan"
-                      ? "bg-rose-600 text-white shadow-sm"
-                      : "bg-white/[0.04] text-gray-400 hover:text-white"
+                      ? "bg-[#6366F1] text-[#F5F5F5]"
+                      : "bg-[#111214] border border-[#24262A] text-[#8B8F98] hover:text-[#F5F5F5] hover:bg-[#17181B]"
                   }`}
                 >
                   <ShieldAlert className="w-3 h-3" />
@@ -501,28 +492,28 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
 
               {/* AI Response Output */}
               {aiLoading ? (
-                <div className="py-12 text-center text-xs text-indigo-400 flex flex-col items-center gap-2">
-                  <div className="h-5 w-5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
-                  <span className="font-semibold">Synthesizing code intelligence...</span>
+                <div className="py-12 text-center text-xs text-[#8B8F98] flex flex-col items-center gap-2">
+                  <div className="h-5 w-5 rounded-full border-2 border-[#6366F1] border-t-transparent animate-spin" />
+                  <span className="font-medium text-[#F5F5F5]">Synthesizing code intelligence...</span>
                 </div>
               ) : aiResult ? (
                 <div className="space-y-3 text-xs leading-relaxed">
-                  <div className="rounded-xl bg-white/[0.03] border border-white/5 p-3 text-gray-300 whitespace-pre-wrap">
+                  <div className="rounded-lg bg-[#111214] border border-[#24262A] p-3 text-[#F5F5F5] whitespace-pre-wrap">
                     {aiResult.explanation}
                   </div>
 
                   {aiResult.suggested_code && (
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] text-gray-400">
-                        <span className="font-semibold text-white">Suggested Refactor:</span>
+                      <div className="flex items-center justify-between text-[11px] text-[#8B8F98]">
+                        <span className="font-semibold text-[#F5F5F5]">Suggested Refactor:</span>
                         <button
                           onClick={() => handleCopy(aiResult.suggested_code || "")}
-                          className="text-indigo-400 hover:text-indigo-300"
+                          className="text-[#6366F1] hover:underline"
                         >
                           Copy
                         </button>
                       </div>
-                      <pre className="rounded-xl bg-black/60 border border-white/10 p-3 text-[11px] font-mono text-emerald-300 overflow-x-auto">
+                      <pre className="rounded-lg bg-[#08090A] border border-[#24262A] p-3 text-[11px] font-mono text-[#F5F5F5] overflow-x-auto">
                         {aiResult.suggested_code}
                       </pre>
                     </div>
@@ -530,16 +521,16 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
 
                   {aiResult.unit_tests && (
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] text-gray-400">
-                        <span className="font-semibold text-white">Generated Unit Tests:</span>
+                      <div className="flex items-center justify-between text-[11px] text-[#8B8F98]">
+                        <span className="font-semibold text-[#F5F5F5]">Generated Unit Tests:</span>
                         <button
                           onClick={() => handleCopy(aiResult.unit_tests || "")}
-                          className="text-cyan-400 hover:text-cyan-300"
+                          className="text-[#6366F1] hover:underline"
                         >
                           Copy
                         </button>
                       </div>
-                      <pre className="rounded-xl bg-black/60 border border-white/10 p-3 text-[11px] font-mono text-cyan-300 overflow-x-auto">
+                      <pre className="rounded-lg bg-[#08090A] border border-[#24262A] p-3 text-[11px] font-mono text-[#F5F5F5] overflow-x-auto">
                         {aiResult.unit_tests}
                       </pre>
                     </div>
@@ -550,16 +541,16 @@ export default function CodeExplorer({ token, initialRepoId, onSendToChat }: Cod
 
             {/* Send to Main Chat Action */}
             {onSendToChat && aiResult && (
-              <div className="pt-3 border-t border-white/10">
+              <div className="pt-3 border-t border-[#24262A]">
                 <button
                   onClick={() => {
                     onSendToChat(
                       `Regarding file \`${activeFilePath}\`:\n${aiResult.explanation.slice(0, 300)}...`
                     );
                   }}
-                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/15 py-2 text-xs font-semibold text-white transition flex items-center justify-center gap-2"
+                  className="w-full rounded-md bg-[#111214] hover:bg-[#17181B] border border-[#24262A] py-2 text-xs font-medium text-[#F5F5F5] transition flex items-center justify-center gap-2"
                 >
-                  <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
+                  <MessageSquare className="w-3.5 h-3.5 text-[#8B8F98]" />
                   <span>Continue in AI Copilot Chat</span>
                 </button>
               </div>

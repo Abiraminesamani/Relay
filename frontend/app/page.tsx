@@ -59,10 +59,10 @@ export default function Home() {
 
   if (initializing) {
     return (
-      <div className="auth-bg flex min-h-screen items-center justify-center text-sm text-gray-400">
-        <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-          Initializing Relay...
+      <div className="min-h-screen bg-[#08090A] flex items-center justify-center text-xs text-[#8B8F98]">
+        <div className="flex items-center gap-2.5">
+          <div className="h-4 w-4 rounded-full border-2 border-[#6366F1] border-t-transparent animate-spin" />
+          <span>Initializing Relay Engineering Intelligence...</span>
         </div>
       </div>
     );

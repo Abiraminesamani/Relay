@@ -84,8 +84,6 @@ const QUICK_ACTIONS = [
     desc: "Review latest pull request diff",
     agent: "pr_review",
     query: "Review the latest open pull request diff and suggest fixes",
-    color: "from-rose-500/10 to-rose-500/5 hover:border-rose-500/30",
-    badgeColor: "text-rose-400 bg-rose-500/10",
   },
   {
     icon: Workflow,
@@ -93,8 +91,6 @@ const QUICK_ACTIONS = [
     desc: "Diagnose pipeline build runs",
     agent: "ci",
     query: "Why did the latest CI/CD workflow pipeline fail?",
-    color: "from-amber-500/10 to-amber-500/5 hover:border-amber-500/30",
-    badgeColor: "text-amber-400 bg-amber-500/10",
   },
   {
     icon: Layers,
@@ -102,8 +98,6 @@ const QUICK_ACTIONS = [
     desc: "Analyze system design & layers",
     agent: "code",
     query: "Explain the backend architecture and service layer in this repo",
-    color: "from-indigo-500/10 to-indigo-500/5 hover:border-indigo-500/30",
-    badgeColor: "text-indigo-400 bg-indigo-500/10",
   },
   {
     icon: ShieldAlert,
@@ -111,8 +105,6 @@ const QUICK_ACTIONS = [
     desc: "Scan repository vulnerabilities",
     agent: "code",
     query: "Run a security scan on this repository for hardcoded secrets and flaws",
-    color: "from-cyan-500/10 to-cyan-500/5 hover:border-cyan-500/30",
-    badgeColor: "text-cyan-400 bg-cyan-500/10",
   },
   {
     icon: Search,
@@ -120,8 +112,6 @@ const QUICK_ACTIONS = [
     desc: "Semantic AST vector search",
     agent: "code",
     query: "Find where user authentication and API controllers are implemented",
-    color: "from-blue-500/10 to-blue-500/5 hover:border-blue-500/30",
-    badgeColor: "text-blue-400 bg-blue-500/10",
   },
   {
     icon: Sparkles,
@@ -129,8 +119,6 @@ const QUICK_ACTIONS = [
     desc: "Multi-agent autonomous triage",
     agent: "auto",
     query: "Give me an overview of this repository and recent changes",
-    color: "from-purple-500/10 to-purple-500/5 hover:border-purple-500/30",
-    badgeColor: "text-purple-400 bg-purple-500/10",
   },
 ];
 
@@ -193,13 +181,13 @@ export default function HomeOverview({
   function getActivityIcon(type: string) {
     switch (type) {
       case "pr":
-        return <GitPullRequest className="w-3.5 h-3.5 text-purple-400 mt-0.5 flex-shrink-0" />;
+        return <GitPullRequest className="w-3.5 h-3.5 text-[#8B8F98] mt-0.5 flex-shrink-0" />;
       case "ci":
-        return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />;
+        return <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] mt-0.5 flex-shrink-0" />;
       case "issue":
-        return <AlertCircle className="w-3.5 h-3.5 text-amber-400 mt-0.5 flex-shrink-0" />;
+        return <AlertCircle className="w-3.5 h-3.5 text-[#F59E0B] mt-0.5 flex-shrink-0" />;
       default:
-        return <Activity className="w-3.5 h-3.5 text-indigo-400 mt-0.5 flex-shrink-0" />;
+        return <Activity className="w-3.5 h-3.5 text-[#8B8F98] mt-0.5 flex-shrink-0" />;
     }
   }
 
@@ -208,90 +196,90 @@ export default function HomeOverview({
       {/* Greeting Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#F5F5F5] tracking-tight">
             Welcome, {user.name.split(" ")[0] || "Developer"}
           </h2>
-          <p className="text-xs sm:text-sm text-gray-400 mt-1">
+          <p className="text-xs text-[#8B8F98] mt-1">
             Engineering intelligence active & ready for codebase reasoning
           </p>
         </div>
 
         <button
           onClick={() => onNavigateToTab("repos")}
-          className="self-start sm:self-auto rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-gray-300 hover:bg-white/[0.08] hover:text-white transition flex items-center gap-2"
+          className="self-start sm:self-auto rounded-lg border border-[#24262A] bg-[#111214] hover:bg-[#17181B] px-3.5 py-2 text-xs font-medium text-[#F5F5F5] transition flex items-center gap-2"
         >
-          <FolderGit2 className="w-4 h-4 text-indigo-400" />
+          <FolderGit2 className="w-4 h-4 text-[#8B8F98]" />
           <span>Manage Repositories</span>
-          <ArrowRight className="w-3.5 h-3.5 text-gray-500" />
+          <ArrowRight className="w-3.5 h-3.5 text-[#5C6068]" />
         </button>
       </div>
 
       {/* Top 4 Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Active Repo Card */}
-        <div className="rounded-2xl glass-card p-4 relative overflow-hidden border border-white/10">
-          <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+        <div className="rounded-xl bg-[#111214] border border-[#24262A] p-4 relative overflow-hidden">
+          <div className="flex items-center justify-between text-xs text-[#8B8F98] mb-2">
             <span className="font-medium">Active Repository</span>
             <button
               onClick={() => setIsStarred(!isStarred)}
-              className="text-amber-400 hover:scale-110 transition"
+              className="text-[#8B8F98] hover:text-[#F5F5F5] transition"
               title="Bookmark repository"
             >
-              <Star className={`w-3.5 h-3.5 ${isStarred ? "fill-amber-400 text-amber-400" : "text-gray-500"}`} />
+              <Star className={`w-3.5 h-3.5 ${isStarred ? "fill-[#F59E0B] text-[#F59E0B]" : "text-[#5C6068]"}`} />
             </button>
           </div>
           <div className="flex items-center gap-2.5 mt-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400 font-bold border border-indigo-500/20 text-xs">
-              <FolderGit2 className="w-4 h-4 text-indigo-400" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17181B] text-[#6366F1] font-bold border border-[#24262A] text-xs">
+              <FolderGit2 className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-bold text-white truncate">{cleanRepoLabel}</div>
-              <div className="text-[11px] text-gray-400 truncate">{cleanRepoCoordinates}</div>
+              <div className="text-sm font-semibold text-[#F5F5F5] truncate">{cleanRepoLabel}</div>
+              <div className="text-[11px] text-[#8B8F98] truncate">{cleanRepoCoordinates}</div>
             </div>
           </div>
         </div>
 
         {/* Open PRs Card */}
-        <div className="rounded-2xl glass-card p-4 relative overflow-hidden border border-white/10">
-          <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+        <div className="rounded-xl bg-[#111214] border border-[#24262A] p-4 relative overflow-hidden">
+          <div className="flex items-center justify-between text-xs text-[#8B8F98] mb-2">
             <span className="font-medium">Open Pull Requests</span>
-            <GitPullRequest className="w-3.5 h-3.5 text-purple-400" />
+            <GitPullRequest className="w-3.5 h-3.5 text-[#8B8F98]" />
           </div>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-bold text-white">{openPRs}</span>
-            <span className="text-[11px] font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-md px-1.5 py-0.5">
-              {openPRs > 0 ? `+${openPRs} active` : "up to date"}
+            <span className="text-2xl font-bold text-[#F5F5F5]">{openPRs}</span>
+            <span className="text-[11px] font-medium text-[#8B8F98] bg-[#17181B] border border-[#24262A] rounded px-1.5 py-0.5">
+              {openPRs > 0 ? `${openPRs} active` : "up to date"}
             </span>
           </div>
         </div>
 
         {/* CI/CD Status Card */}
-        <div className="rounded-2xl glass-card p-4 relative overflow-hidden border border-white/10">
-          <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+        <div className="rounded-xl bg-[#111214] border border-[#24262A] p-4 relative overflow-hidden">
+          <div className="flex items-center justify-between text-xs text-[#8B8F98] mb-2">
             <span className="font-medium">CI/CD Pipeline</span>
             {ciStatus === "All Green" ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E]" />
             ) : (
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+              <AlertTriangle className="w-3.5 h-3.5 text-[#EF4444]" />
             )}
           </div>
           <div className="mt-1">
-            <div className={`text-lg font-bold ${ciStatus === "All Green" ? "text-emerald-400" : "text-rose-400"}`}>
+            <div className={`text-base font-semibold ${ciStatus === "All Green" ? "text-[#22C55E]" : "text-[#EF4444]"}`}>
               {ciStatus}
             </div>
-            <div className="text-[11px] text-gray-400">{ciSubtext}</div>
+            <div className="text-[11px] text-[#8B8F98]">{ciSubtext}</div>
           </div>
         </div>
 
         {/* Issues Card */}
-        <div className="rounded-2xl glass-card p-4 relative overflow-hidden border border-white/10">
-          <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+        <div className="rounded-xl bg-[#111214] border border-[#24262A] p-4 relative overflow-hidden">
+          <div className="flex items-center justify-between text-xs text-[#8B8F98] mb-2">
             <span className="font-medium">Open Issues</span>
-            <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+            <AlertCircle className="w-3.5 h-3.5 text-[#8B8F98]" />
           </div>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-bold text-white">{issuesCount}</span>
-            <span className="text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-md px-1.5 py-0.5">
+            <span className="text-2xl font-bold text-[#F5F5F5]">{issuesCount}</span>
+            <span className="text-[11px] font-medium text-[#8B8F98] bg-[#17181B] border border-[#24262A] rounded px-1.5 py-0.5">
               {issuesCount > 0 ? `${issuesCount} open` : "zero open"}
             </span>
           </div>
@@ -301,32 +289,32 @@ export default function HomeOverview({
       {/* Main 2-Column Grid: Quick Actions & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Quick Actions (Left 7 Columns) */}
-        <div className="lg:col-span-7 space-y-3.5">
+        <div className="lg:col-span-7 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Quick Actions</h3>
-            <span className="text-[11px] text-gray-500">Autonomous Agents</span>
+            <h3 className="text-xs font-semibold text-[#8B8F98] uppercase tracking-wider">Quick Actions</h3>
+            <span className="text-[11px] text-[#5C6068]">Autonomous Multi-Agent</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {QUICK_ACTIONS.map((action, idx) => {
               const IconComp = action.icon;
               return (
                 <button
                   key={idx}
                   onClick={() => onLaunchCopilotQuery(action.query, action.agent)}
-                  className={`rounded-2xl glass-card p-3.5 text-left transition group border border-white/10 flex flex-col justify-between h-32 hover:scale-[1.02] ${action.color}`}
+                  className="rounded-xl bg-[#111214] border border-[#24262A] p-3.5 text-left transition group flex flex-col justify-between h-28 hover:bg-[#17181B] hover:border-[#373A40]"
                 >
                   <div className="flex items-center justify-between">
-                    <div className={`p-2 rounded-xl ${action.badgeColor}`}>
+                    <div className="p-1.5 rounded-md bg-[#17181B] border border-[#24262A] text-[#8B8F98] group-hover:text-[#6366F1] transition">
                       <IconComp className="w-4 h-4" />
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-white transition group-hover:translate-x-0.5" />
+                    <ArrowRight className="w-3.5 h-3.5 text-[#5C6068] group-hover:text-[#F5F5F5] transition group-hover:translate-x-0.5" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-white group-hover:text-indigo-300 transition">
+                    <div className="text-xs font-medium text-[#F5F5F5] transition">
                       {action.title}
                     </div>
-                    <div className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">{action.desc}</div>
+                    <div className="text-[10px] text-[#8B8F98] line-clamp-1 mt-0.5">{action.desc}</div>
                   </div>
                 </button>
               );
@@ -335,41 +323,41 @@ export default function HomeOverview({
         </div>
 
         {/* Recent Activity Feed (Right 5 Columns) */}
-        <div className="lg:col-span-5 rounded-2xl glass-panel p-5 border border-white/10 flex flex-col justify-between shadow-xl">
+        <div className="lg:col-span-5 rounded-xl bg-[#111214] p-4 border border-[#24262A] flex flex-col justify-between shadow-sm">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-3">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider">Recent Activity</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-[#24262A] mb-3">
+              <h3 className="text-xs font-semibold text-[#8B8F98] uppercase tracking-wider">Recent Activity</h3>
               <button
                 onClick={() => onNavigateToTab("repos")}
-                className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium transition flex items-center gap-1"
+                className="text-[11px] text-[#8B8F98] hover:text-[#6366F1] font-medium transition flex items-center gap-1"
               >
                 <span>View all</span>
                 <ChevronRight className="w-3 h-3" />
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {activities.map((item, idx) => (
                 <div key={idx} className="flex items-start justify-between gap-3 text-xs">
                   <div className="flex items-start gap-2.5 min-w-0">
                     {getActivityIcon(item.type)}
                     <div className="min-w-0">
-                      <div className="font-semibold text-gray-200 truncate">{item.title}</div>
-                      <div className="text-[11px] text-gray-400 truncate">{item.desc}</div>
+                      <div className="font-medium text-[#F5F5F5] truncate">{item.title}</div>
+                      <div className="text-[11px] text-[#8B8F98] truncate">{item.desc}</div>
                     </div>
                   </div>
-                  <span className="text-[10px] text-gray-500 whitespace-nowrap">{item.time}</span>
+                  <span className="text-[10px] text-[#5C6068] whitespace-nowrap">{item.time}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="pt-4 mt-3 border-t border-white/5">
+          <div className="pt-3 mt-3 border-t border-[#24262A]">
             <button
               onClick={() => onLaunchCopilotQuery(`Summarize the latest commits, open pull requests, and CI status for ${cleanRepoLabel}`)}
-              className="w-full rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 py-2.5 text-xs font-semibold text-gray-300 hover:text-white transition flex items-center justify-center gap-2"
+              className="w-full rounded-lg bg-[#17181B] hover:bg-[#24262A] border border-[#24262A] py-2 text-xs font-medium text-[#F5F5F5] transition flex items-center justify-center gap-2"
             >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <Sparkles className="w-3.5 h-3.5 text-[#6366F1]" />
               <span>Generate AI Activity Summary</span>
             </button>
           </div>
@@ -377,20 +365,20 @@ export default function HomeOverview({
       </div>
 
       {/* Bottom Universal Floating Prompt Bar */}
-      <div className="rounded-2xl glass-panel-deep p-3.5 border border-white/10 shadow-2xl">
+      <div className="rounded-xl bg-[#111214] p-3 border border-[#24262A]">
         <form onSubmit={handlePromptSubmit} className="flex items-center gap-3">
-          <Sparkles className="w-4 h-4 text-indigo-400 pl-1 flex-shrink-0" />
+          <Sparkles className="w-4 h-4 text-[#8B8F98] pl-1 flex-shrink-0" />
           <input
             type="text"
             value={promptInput}
             onChange={(e) => setPromptInput(e.target.value)}
             placeholder={`Ask Relay anything about ${cleanRepoLabel}...`}
-            className="flex-1 bg-transparent text-xs sm:text-sm text-white placeholder-gray-500 outline-none"
+            className="flex-1 bg-transparent text-xs sm:text-sm text-[#F5F5F5] placeholder-[#5C6068] outline-none"
           />
           <button
             type="submit"
             disabled={!promptInput.trim()}
-            className="rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white px-4 py-2 text-xs font-bold transition shadow-md glow-indigo flex items-center gap-1.5"
+            className="rounded-md bg-[#6366F1] hover:bg-[#4F46E5] disabled:opacity-40 text-[#F5F5F5] px-4 py-2 text-xs font-semibold transition flex items-center gap-1.5"
           >
             <span>Send</span>
             <Send className="w-3 h-3" />

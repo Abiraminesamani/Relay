@@ -28,6 +28,9 @@ export type Repository = {
   id: number;
   name: string;
   repo_url: string;
+  jira_project_key?: string | null;
+  has_slack_webhook?: boolean;
+  slack_webhook_masked?: string | null;
   added_at: string;
   user_id: number;
 };
@@ -125,9 +128,14 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
+  const [modalJiraKey, setModalJiraKey] = useState("");
+  const [modalSlackUrl, setModalSlackUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [indexingId, setIndexingId] = useState<number | null>(null);
   const [indexedStats, setIndexedStats] = useState<Record<number, { files: number; chunks: number }>>({});
+  const [jiraProjectKey, setJiraProjectKey] = useState("");
+  const [slackWebhookUrl, setSlackWebhookUrl] = useState("");
+  const [savingIntegrations, setSavingIntegrations] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -154,6 +162,15 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
     fetchRepositories();
   }, []);
 
+  // Sync integration settings when selected repository changes
+  useEffect(() => {
+    const selected = repositories.find((r) => r.id === selectedRepoId);
+    if (selected) {
+      setJiraProjectKey(selected.jira_project_key || "");
+      setSlackWebhookUrl("");
+    }
+  }, [selectedRepoId, repositories]);
+
   // Fetch Live Analytics whenever selectedRepoId changes
   useEffect(() => {
     if (!token || !selectedRepoId) return;
@@ -176,13 +193,17 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
     setSubmitting(true);
 
     try {
+      const payload: Record<string, any> = { name, repo_url: repoUrl };
+      if (modalJiraKey.trim()) payload.jira_project_key = modalJiraKey.trim().toUpperCase();
+      if (modalSlackUrl.trim()) payload.slack_webhook_url = modalSlackUrl.trim();
+
       const res = await fetch(`${API_BASE}/repositories`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, repo_url: repoUrl }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -191,6 +212,8 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
       setSuccess(`Repository '${data.name}' registered successfully!`);
       setName("");
       setRepoUrl("");
+      setModalJiraKey("");
+      setModalSlackUrl("");
       setIsModalOpen(false);
       await fetchRepositories();
       setSelectedRepoId(data.id);
@@ -198,6 +221,46 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
       setError(err.message || "Error adding repository");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleSaveIntegrations(e: React.FormEvent) {
+    e.preventDefault();
+    const selectedRepo = repositories.find((r) => r.id === selectedRepoId);
+    if (!selectedRepo) return;
+    setError(null);
+    setSuccess(null);
+    setSavingIntegrations(true);
+
+    try {
+      const updatePayload: Record<string, any> = {
+        name: selectedRepo.name,
+        repo_url: selectedRepo.repo_url,
+        jira_project_key: jiraProjectKey.trim().toUpperCase() || null,
+      };
+      if (slackWebhookUrl.trim()) {
+        updatePayload.slack_webhook_url = slackWebhookUrl.trim();
+      }
+
+      const res = await fetch(`${API_BASE}/repositories/${selectedRepo.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatePayload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatApiError(data.detail) || "Failed to update integration settings");
+
+      setSuccess(`Integration settings for '${selectedRepo.name}' saved successfully!`);
+      setSlackWebhookUrl("");
+      await fetchRepositories();
+    } catch (err: any) {
+      setError(err.message || "Failed to update integration settings");
+    } finally {
+      setSavingIntegrations(false);
     }
   }
 
@@ -282,15 +345,15 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Repositories</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <h2 className="text-2xl font-bold text-[#F5F5F5] tracking-tight">Repositories</h2>
+          <p className="text-xs text-[#8B8F98] mt-0.5">
             Manage and analyze your connected codebase repositories
           </p>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 px-4 py-2.5 text-xs font-bold text-white hover:from-indigo-500 hover:to-purple-500 transition shadow-lg glow-indigo flex items-center gap-2 self-start sm:self-auto"
+          className="rounded-xl bg-[#6366F1] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#4F46E5] transition shadow-sm flex items-center gap-2 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Add Repository</span>
@@ -299,14 +362,14 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
 
       {/* Alerts */}
       {error && (
-        <div className="flex items-center gap-2 rounded-xl bg-red-950/70 border border-red-800/60 p-3 text-xs text-red-300">
-          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30 p-3 text-xs text-[#EF4444]">
+          <AlertCircle className="w-4 h-4 text-[#EF4444] flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
       {success && (
-        <div className="flex items-center gap-2 rounded-xl bg-emerald-950/70 border border-emerald-800/60 p-3 text-xs text-emerald-300">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/30 p-3 text-xs text-[#22C55E]">
+          <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
           <span>{success}</span>
         </div>
       )}
@@ -314,25 +377,25 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
       {/* Main 2-Column Split View */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Column: Repository Search & List (4 Columns) */}
-        <div className="lg:col-span-4 rounded-2xl glass-panel p-4 border border-white/10 space-y-3 h-[calc(100vh-230px)] flex flex-col">
+        <div className="lg:col-span-4 rounded-2xl bg-[#0C0D0F] p-4 border border-[#24262A] space-y-3 h-[calc(100vh-230px)] flex flex-col">
           {/* Search Input */}
-          <div className="flex items-center gap-2 rounded-xl bg-gray-900/90 border border-white/10 px-3 py-2 text-xs">
-            <Search className="w-3.5 h-3.5 text-gray-500" />
+          <div className="flex items-center gap-2 rounded-xl bg-[#111214] border border-[#24262A] px-3 py-2 text-xs">
+            <Search className="w-3.5 h-3.5 text-[#8B8F98]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search repositories..."
-              className="bg-transparent text-white placeholder-gray-500 outline-none w-full text-xs"
+              className="bg-transparent text-[#F5F5F5] placeholder-[#8B8F98] outline-none w-full text-xs"
             />
           </div>
 
           {/* Repo List */}
           <div className="space-y-1.5 flex-1 overflow-y-auto pr-1">
             {loading ? (
-              <div className="text-center py-8 text-xs text-gray-500">Loading repositories...</div>
+              <div className="text-center py-8 text-xs text-[#8B8F98]">Loading repositories...</div>
             ) : filteredRepos.length === 0 ? (
-              <div className="text-center py-8 text-xs text-gray-500">
+              <div className="text-center py-8 text-xs text-[#8B8F98]">
                 No repositories found. Click &quot;Add Repository&quot; to connect one.
               </div>
             ) : (
@@ -347,33 +410,33 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                     onClick={() => setSelectedRepoId(repo.id)}
                     className={`w-full text-left rounded-xl p-3 text-xs transition border flex items-center justify-between group ${
                       isSelected
-                        ? "bg-indigo-600/15 border-indigo-500/40 shadow-sm"
-                        : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05] hover:border-white/10"
+                        ? "bg-[#17181B] border-[#6366F1] shadow-sm"
+                        : "bg-[#111214] border-[#24262A] hover:bg-[#17181B] hover:border-[#373A40]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div
                         className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
                           isSelected
-                            ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                            : "bg-gray-800/80 text-gray-400"
+                            ? "bg-[#6366F1]/20 text-[#6366F1] border border-[#6366F1]/30"
+                            : "bg-[#17181B] text-[#8B8F98] border border-[#24262A]"
                         }`}
                       >
                         <FolderGit2 className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0">
-                        <div className="font-bold text-white truncate">{repo.name}</div>
-                        <div className="text-[10px] text-gray-400 truncate">{cleanCoords}</div>
+                        <div className="font-semibold text-[#F5F5F5] truncate">{repo.name}</div>
+                        <div className="text-[10px] text-[#8B8F98] truncate">{cleanCoords}</div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                       {stats && stats.chunks > 0 ? (
-                        <span className="text-[9px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                        <span className="text-[9px] text-[#22C55E] font-semibold bg-[#22C55E]/10 px-1.5 py-0.5 rounded border border-[#22C55E]/20">
                           {stats.chunks}c
                         </span>
                       ) : (
-                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse-dot" />
+                        <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
                       )}
                     </div>
                   </button>
@@ -385,21 +448,21 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
 
         {/* Right Column: Repository Insights & Analytics (8 Columns) */}
         {selectedRepo ? (
-          <div className="lg:col-span-8 rounded-2xl glass-panel p-6 border border-white/10 space-y-6">
+          <div className="lg:col-span-8 rounded-2xl bg-[#111214] p-6 border border-[#24262A] space-y-6">
             {/* Repo Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#24262A]">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white font-bold shadow-md glow-indigo">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#17181B] text-[#6366F1] border border-[#24262A] font-bold shadow-sm">
                   <FolderGit2 className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-white">{analytics?.name || selectedRepo.name}</h3>
-                    <span className="text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">
+                    <h3 className="text-lg font-bold text-[#F5F5F5]">{analytics?.name || selectedRepo.name}</h3>
+                    <span className="text-[10px] font-semibold bg-[#17181B] text-[#8B8F98] border border-[#24262A] px-2 py-0.5 rounded-full">
                       {analytics?.default_branch || "main"}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-[#8B8F98]">
                     {analytics?.full_name || selectedRepo.repo_url.replace(/https?:\/\/github\.com\//, "").replace(/\.git$/, "")}
                   </p>
                 </div>
@@ -409,17 +472,17 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                 <button
                   onClick={() => handleIndexRepository(selectedRepo)}
                   disabled={isIndexing}
-                  className="rounded-xl border border-cyan-500/30 bg-cyan-950/30 px-3 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-900/50 hover:text-white transition flex items-center gap-1.5 disabled:opacity-50"
+                  className="rounded-xl border border-[#24262A] bg-[#17181B] px-3 py-1.5 text-xs font-semibold text-[#8B8F98] hover:text-[#F5F5F5] hover:border-[#6366F1] transition flex items-center gap-1.5 disabled:opacity-50"
                   title="Trigger tree-sitter chunking and vector indexing into ChromaDB"
                 >
                   {isIndexing ? (
                     <>
-                      <div className="h-3 w-3 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+                      <div className="h-3 w-3 rounded-full border-2 border-[#6366F1] border-t-transparent animate-spin" />
                       <span>Indexing...</span>
                     </>
                   ) : (
                     <>
-                      <Zap className="w-3.5 h-3.5" />
+                      <Zap className="w-3.5 h-3.5 text-[#6366F1]" />
                       <span>Index RAG ({analytics?.chunks_indexed || 0}c)</span>
                     </>
                   )}
@@ -429,16 +492,16 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                   href={selectedRepo.repo_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-gray-300 hover:bg-white/[0.08] hover:text-white transition flex items-center gap-1.5"
+                  className="rounded-xl border border-[#24262A] bg-[#17181B] px-3 py-1.5 text-xs font-semibold text-[#8B8F98] hover:bg-[#24262A] hover:text-[#F5F5F5] transition flex items-center gap-1.5"
                 >
                   <span>GitHub</span>
-                  <ExternalLink className="w-3 h-3 text-gray-400" />
+                  <ExternalLink className="w-3 h-3 text-[#8B8F98]" />
                 </a>
 
                 {onSelectRepoForChat && (
                   <button
                     onClick={() => onSelectRepoForChat(selectedRepo.name, selectedRepo.repo_url)}
-                    className="rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition shadow-sm glow-indigo flex items-center gap-1.5"
+                    className="rounded-xl bg-[#6366F1] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4F46E5] transition shadow-sm flex items-center gap-1.5"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
                     <span>Chat</span>
@@ -447,7 +510,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
 
                 <button
                   onClick={() => handleDeleteRepository(selectedRepo.id, selectedRepo.name)}
-                  className="rounded-xl border border-red-500/20 bg-red-950/20 p-2 text-xs text-red-400 hover:bg-red-950/60 hover:text-red-200 transition"
+                  className="rounded-xl border border-[#EF4444]/20 bg-[#EF4444]/10 p-2 text-xs text-[#EF4444] hover:bg-[#EF4444]/20 transition"
                   title="Delete Repository"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -456,15 +519,15 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
             </div>
 
             {/* Sub-Tabs */}
-            <div className="flex items-center gap-1 border-b border-white/5 pb-2 text-xs font-semibold">
+            <div className="flex items-center gap-1 border-b border-[#24262A] pb-2 text-xs font-semibold">
               {(["overview", "analytics", "prs", "issues", "settings"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveSubTab(tab)}
                   className={`rounded-lg px-3 py-1.5 capitalize transition ${
                     activeSubTab === tab
-                      ? "bg-white/[0.08] text-white border border-white/10"
-                      : "text-gray-400 hover:text-gray-200"
+                      ? "bg-[#17181B] text-[#F5F5F5] border border-[#24262A]"
+                      : "text-[#8B8F98] hover:text-[#F5F5F5]"
                   }`}
                 >
                   {tab === "prs" ? `PRs (${analytics?.total_prs_count || 0})` : tab}
@@ -477,50 +540,50 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
               <>
                 {/* 4 Stat Metric Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="rounded-xl glass-card p-3.5 border border-white/10">
-                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                  <div className="rounded-xl bg-[#0C0D0F] p-3.5 border border-[#24262A] hover:bg-[#17181B] transition">
+                    <div className="flex items-center justify-between text-[11px] text-[#8B8F98]">
                       <span>Stars</span>
-                      <Star className="w-3.5 h-3.5 text-amber-400" />
+                      <Star className="w-3.5 h-3.5 text-[#F59E0B]" />
                     </div>
-                    <div className="text-xl font-bold text-white mt-1">{analytics?.stars ?? 0}</div>
-                    <div className="text-[10px] text-emerald-400 mt-0.5">GitHub stars</div>
+                    <div className="text-xl font-bold text-[#F5F5F5] mt-1">{analytics?.stars ?? 0}</div>
+                    <div className="text-[10px] text-[#8B8F98] mt-0.5">GitHub stars</div>
                   </div>
 
-                  <div className="rounded-xl glass-card p-3.5 border border-white/10">
-                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                  <div className="rounded-xl bg-[#0C0D0F] p-3.5 border border-[#24262A] hover:bg-[#17181B] transition">
+                    <div className="flex items-center justify-between text-[11px] text-[#8B8F98]">
                       <span>Forks</span>
-                      <GitFork className="w-3.5 h-3.5 text-indigo-400" />
+                      <GitFork className="w-3.5 h-3.5 text-[#6366F1]" />
                     </div>
-                    <div className="text-xl font-bold text-white mt-1">{analytics?.forks ?? 0}</div>
-                    <div className="text-[10px] text-emerald-400 mt-0.5">Community forks</div>
+                    <div className="text-xl font-bold text-[#F5F5F5] mt-1">{analytics?.forks ?? 0}</div>
+                    <div className="text-[10px] text-[#8B8F98] mt-0.5">Community forks</div>
                   </div>
 
-                  <div className="rounded-xl glass-card p-3.5 border border-white/10">
-                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                  <div className="rounded-xl bg-[#0C0D0F] p-3.5 border border-[#24262A] hover:bg-[#17181B] transition">
+                    <div className="flex items-center justify-between text-[11px] text-[#8B8F98]">
                       <span>Issues</span>
-                      <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                      <AlertCircle className="w-3.5 h-3.5 text-[#F59E0B]" />
                     </div>
-                    <div className="text-xl font-bold text-white mt-1">{analytics?.open_issues ?? 0}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">open issues</div>
+                    <div className="text-xl font-bold text-[#F5F5F5] mt-1">{analytics?.open_issues ?? 0}</div>
+                    <div className="text-[10px] text-[#8B8F98] mt-0.5">open issues</div>
                   </div>
 
-                  <div className="rounded-xl glass-card p-3.5 border border-white/10">
-                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                  <div className="rounded-xl bg-[#0C0D0F] p-3.5 border border-[#24262A] hover:bg-[#17181B] transition">
+                    <div className="flex items-center justify-between text-[11px] text-[#8B8F98]">
                       <span>Pull Requests</span>
-                      <GitPullRequest className="w-3.5 h-3.5 text-purple-400" />
+                      <GitPullRequest className="w-3.5 h-3.5 text-[#6366F1]" />
                     </div>
-                    <div className="text-xl font-bold text-white mt-1">{analytics?.total_prs_count ?? 0}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">{analytics?.open_prs_count ?? 0} open</div>
+                    <div className="text-xl font-bold text-[#F5F5F5] mt-1">{analytics?.total_prs_count ?? 0}</div>
+                    <div className="text-[10px] text-[#8B8F98] mt-0.5">{analytics?.open_prs_count ?? 0} open</div>
                   </div>
                 </div>
 
                 {/* Visual Analytics Grid: Activity Chart & Languages Donut */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                   {/* Activity Overview Spline Chart (7 Columns) */}
-                  <div className="md:col-span-7 rounded-2xl glass-card p-4 border border-white/10 flex flex-col justify-between">
+                  <div className="md:col-span-7 rounded-2xl bg-[#0C0D0F] p-4 border border-[#24262A] flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-white">Activity Overview</span>
-                      <span className="text-[10px] text-gray-400 bg-white/[0.04] px-2 py-0.5 rounded border border-white/5">
+                      <span className="text-xs font-bold text-[#F5F5F5]">Activity Overview</span>
+                      <span className="text-[10px] text-[#8B8F98] bg-[#111214] px-2 py-0.5 rounded border border-[#24262A]">
                         Last 6 months
                       </span>
                     </div>
@@ -530,13 +593,13 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                       <svg className="w-full h-full" viewBox="0 0 400 120" preserveAspectRatio="none">
                         <defs>
                           <linearGradient id="splineGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.45" />
+                            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
                             <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
                           </linearGradient>
                         </defs>
-                        <line x1="0" y1="20" x2="400" y2="20" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
-                        <line x1="0" y1="60" x2="400" y2="60" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
-                        <line x1="0" y1="100" x2="400" y2="100" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+                        <line x1="0" y1="20" x2="400" y2="20" stroke="#24262A" strokeDasharray="3 3" />
+                        <line x1="0" y1="60" x2="400" y2="60" stroke="#24262A" strokeDasharray="3 3" />
+                        <line x1="0" y1="100" x2="400" y2="100" stroke="#24262A" strokeDasharray="3 3" />
 
                         <path
                           d="M 0,90 Q 50,40 100,75 T 200,30 T 300,65 T 400,20 L 400,120 L 0,120 Z"
@@ -545,13 +608,13 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                         <path
                           d="M 0,90 Q 50,40 100,75 T 200,30 T 300,65 T 400,20"
                           fill="none"
-                          stroke="#818cf8"
-                          strokeWidth="2.5"
+                          stroke="#6366F1"
+                          strokeWidth="2"
                         />
-                        <circle cx="200" cy="30" r="4" fill="#a855f7" stroke="#ffffff" strokeWidth="1.5" />
+                        <circle cx="200" cy="30" r="3.5" fill="#6366F1" stroke="#08090A" strokeWidth="2" />
                       </svg>
                       {/* Month Markers */}
-                      <div className="flex items-center justify-between text-[9px] text-gray-500 pt-1">
+                      <div className="flex items-center justify-between text-[9px] text-[#8B8F98] pt-1">
                         <span>Jan</span>
                         <span>Feb</span>
                         <span>Mar</span>
@@ -565,14 +628,14 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                   </div>
 
                   {/* Languages Donut Chart (5 Columns) */}
-                  <div className="md:col-span-5 rounded-2xl glass-card p-4 border border-white/10 flex flex-col justify-between">
-                    <span className="text-xs font-bold text-white mb-2">Languages</span>
+                  <div className="md:col-span-5 rounded-2xl bg-[#0C0D0F] p-4 border border-[#24262A] flex flex-col justify-between">
+                    <span className="text-xs font-bold text-[#F5F5F5] mb-2">Languages</span>
 
                     <div className="flex items-center justify-around gap-2 my-auto">
                       {/* SVG Donut Circle */}
                       <div className="relative h-28 w-28 flex items-center justify-center flex-shrink-0">
                         <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
-                          <circle cx="18" cy="18" r="14" fill="none" stroke="#1f2433" strokeWidth="4" />
+                          <circle cx="18" cy="18" r="14" fill="none" stroke="#17181B" strokeWidth="4" />
                           {languages.slice(0, 4).map((lang, idx) => {
                             const offset = languages.slice(0, idx).reduce((acc, curr) => acc + curr.percentage, 0);
                             return (
@@ -582,7 +645,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                                 cy="18"
                                 r="14"
                                 fill="none"
-                                stroke={lang.color}
+                                stroke={idx === 0 ? "#6366F1" : idx === 1 ? "#8B8F98" : idx === 2 ? "#5C6068" : "#373A40"}
                                 strokeWidth="4"
                                 strokeDasharray={`${lang.percentage} 100`}
                                 strokeDashoffset={-offset}
@@ -591,10 +654,10 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                           })}
                         </svg>
                         <div className="absolute text-center">
-                          <div className="text-[11px] font-bold text-white">
+                          <div className="text-[11px] font-bold text-[#F5F5F5]">
                             {languages[0]?.percentage || 100}%
                           </div>
-                          <div className="text-[8px] text-gray-400 truncate max-w-[50px]">
+                          <div className="text-[8px] text-[#8B8F98] truncate max-w-[50px]">
                             {languages[0]?.name || "Code"}
                           </div>
                         </div>
@@ -604,9 +667,9 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                       <div className="space-y-1.5 text-[10px]">
                         {languages.slice(0, 5).map((lang, idx) => (
                           <div key={idx} className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: lang.color }} />
-                            <span className="text-gray-300 truncate max-w-[65px]">{lang.name}</span>
-                            <span className="text-gray-500 ml-auto">{lang.percentage}%</span>
+                            <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: idx === 0 ? "#6366F1" : "#8B8F98" }} />
+                            <span className="text-[#F5F5F5] truncate max-w-[65px]">{lang.name}</span>
+                            <span className="text-[#8B8F98] ml-auto">{lang.percentage}%</span>
                           </div>
                         ))}
                       </div>
@@ -619,17 +682,17 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
             {/* Sub-Tab 2: Analytics & Languages */}
             {activeSubTab === "analytics" && (
               <div className="space-y-4 text-xs">
-                <div className="rounded-xl glass-card p-4 border border-white/10 space-y-3">
-                  <h4 className="font-bold text-white">Language Breakdown (Live GitHub Bytes)</h4>
+                <div className="rounded-xl bg-[#0C0D0F] p-4 border border-[#24262A] space-y-3">
+                  <h4 className="font-bold text-[#F5F5F5]">Language Breakdown (Live GitHub Bytes)</h4>
                   <div className="space-y-2">
                     {languages.map((l, i) => (
                       <div key={i} className="space-y-1">
                         <div className="flex justify-between text-[11px]">
-                          <span className="text-gray-200 font-semibold">{l.name}</span>
-                          <span className="text-gray-400">{l.percentage}% ({l.bytes.toLocaleString()} bytes)</span>
+                          <span className="text-[#F5F5F5] font-semibold">{l.name}</span>
+                          <span className="text-[#8B8F98]">{l.percentage}% ({l.bytes.toLocaleString()} bytes)</span>
                         </div>
-                        <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${l.percentage}%`, backgroundColor: l.color }} />
+                        <div className="w-full h-1.5 bg-[#17181B] rounded-full overflow-hidden border border-[#24262A]">
+                          <div className="h-full rounded-full bg-[#6366F1]" style={{ width: `${l.percentage}%` }} />
                         </div>
                       </div>
                     ))}
@@ -643,17 +706,17 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
               <div className="space-y-2">
                 {analytics?.pull_requests?.length ? (
                   analytics.pull_requests.map((pr) => (
-                    <div key={pr.number} className="rounded-xl glass-card p-3 border border-white/10 flex items-center justify-between text-xs">
+                    <div key={pr.number} className="rounded-xl bg-[#0C0D0F] p-3 border border-[#24262A] flex items-center justify-between text-xs hover:bg-[#17181B] transition">
                       <div>
-                        <div className="font-semibold text-white">#{pr.number} {pr.title}</div>
+                        <div className="font-semibold text-[#F5F5F5]">#{pr.number} {pr.title}</div>
                         <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          pr.state === "open" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                          pr.state === "open" ? "bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20" : "bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20"
                         }`}>
                           {pr.state.toUpperCase()}
                         </span>
                       </div>
                       {pr.html_url && (
-                        <a href={pr.html_url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline text-xs flex items-center gap-1">
+                        <a href={pr.html_url} target="_blank" rel="noreferrer" className="text-[#6366F1] hover:underline text-xs flex items-center gap-1">
                           <span>View on GitHub</span>
                           <ExternalLink className="w-3 h-3" />
                         </a>
@@ -661,29 +724,103 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-6 text-gray-500 text-xs">No pull requests found for this repository.</div>
+                  <div className="text-center py-6 text-[#8B8F98] text-xs">No pull requests found for this repository.</div>
                 )}
               </div>
             )}
 
             {/* Sub-Tab 4: Issues */}
             {activeSubTab === "issues" && (
-              <div className="text-center py-8 text-xs text-gray-400">
+              <div className="text-center py-8 text-xs text-[#8B8F98]">
                 {analytics?.open_issues ? `There are ${analytics.open_issues} active open issues in this repository.` : "No open issues currently in this repository."}
               </div>
             )}
 
             {/* Sub-Tab 5: Settings */}
             {activeSubTab === "settings" && (
-              <div className="space-y-3 text-xs">
-                <div className="p-4 rounded-xl glass-card border border-white/10">
-                  <h4 className="font-bold text-white mb-1">RAG Vector Storage</h4>
-                  <p className="text-gray-400">ChromaDB collection: <code className="text-indigo-300">relay_{selectedRepo.name.toLowerCase()}</code> ({analytics?.chunks_indexed || 0} chunks)</p>
+              <div className="space-y-3.5 text-xs">
+                {/* Integration Settings Card */}
+                <div className="p-4 rounded-xl bg-[#0C0D0F] border border-[#24262A] space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-[#24262A] pb-2.5">
+                    <div>
+                      <h4 className="font-bold text-[#F5F5F5] text-xs">Repository Integrations</h4>
+                      <p className="text-[11px] text-[#8B8F98]">Configure repository-aware Jira project mapping and channel-specific Slack webhook.</p>
+                    </div>
+                    <span className="text-[10px] text-[#6366F1] font-semibold bg-[#6366F1]/10 px-2.5 py-0.5 rounded-full border border-[#6366F1]/20">
+                      Repository-Aware
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleSaveIntegrations} className="space-y-3">
+                    {/* Jira Project Key */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-semibold text-[#8B8F98] uppercase tracking-wider">
+                          Jira Project Key
+                        </label>
+                        {selectedRepo.jira_project_key && (
+                          <span className="text-[10px] font-medium text-[#22C55E]">
+                            Active: {selectedRepo.jira_project_key}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={jiraProjectKey}
+                        onChange={(e) => setJiraProjectKey(e.target.value.toUpperCase())}
+                        placeholder="e.g. SCRUM, FRONT, BACK (leave empty for global default)"
+                        className="w-full rounded-xl border border-[#24262A] bg-[#111214] px-3.5 py-2 text-xs text-[#F5F5F5] placeholder-[#8B8F98] outline-none focus:border-[#6366F1] transition font-mono"
+                      />
+                      <p className="text-[10px] text-[#8B8F98] mt-1">
+                        Issues created for this repository will route to this Jira project. Falls back to global default (<code>SCRUM</code>) if unassigned.
+                      </p>
+                    </div>
+
+                    {/* Slack Webhook URL */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-semibold text-[#8B8F98] uppercase tracking-wider">
+                          Slack Webhook URL
+                        </label>
+                        {selectedRepo.has_slack_webhook && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#22C55E] bg-[#22C55E]/10 px-2 py-0.5 rounded border border-[#22C55E]/20">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Configured ✓ {selectedRepo.slack_webhook_masked ? `(${selectedRepo.slack_webhook_masked})` : ""}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="password"
+                        value={slackWebhookUrl}
+                        onChange={(e) => setSlackWebhookUrl(e.target.value)}
+                        placeholder={selectedRepo.has_slack_webhook ? "Enter new URL to update webhook" : "https://hooks.slack.com/services/..."}
+                        className="w-full rounded-xl border border-[#24262A] bg-[#111214] px-3.5 py-2 text-xs text-[#F5F5F5] placeholder-[#8B8F98] outline-none focus:border-[#6366F1] transition font-mono"
+                      />
+                      <p className="text-[10px] text-[#8B8F98] mt-1">
+                        Channel-specific Slack alerts and event broadcasts for this repository. Falls back to default webhook if unassigned.
+                      </p>
+                    </div>
+
+                    <div className="pt-1 flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={savingIntegrations}
+                        className="rounded-xl bg-[#6366F1] px-4 py-2 text-xs font-semibold text-white hover:bg-[#4F46E5] disabled:opacity-50 transition shadow-sm"
+                      >
+                        {savingIntegrations ? "Saving..." : "Save Integration Settings"}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-                <div className="p-4 rounded-xl border border-red-500/20 bg-red-950/20">
-                  <h4 className="font-bold text-red-300 mb-1">Danger Zone</h4>
-                  <p className="text-gray-400 mb-3">Deleting this repository will remove its connected index and query mappings.</p>
-                  <button onClick={() => handleDeleteRepository(selectedRepo.id, selectedRepo.name)} className="rounded-lg bg-red-600 text-white px-3 py-1.5 font-bold hover:bg-red-500 transition">
+
+                <div className="p-4 rounded-xl bg-[#0C0D0F] border border-[#24262A]">
+                  <h4 className="font-bold text-[#F5F5F5] mb-1">RAG Vector Storage</h4>
+                  <p className="text-[#8B8F98]">ChromaDB collection: <code className="text-[#6366F1]">relay_{selectedRepo.name.toLowerCase()}</code> ({analytics?.chunks_indexed || 0} chunks)</p>
+                </div>
+                <div className="p-4 rounded-xl border border-[#EF4444]/20 bg-[#EF4444]/10">
+                  <h4 className="font-bold text-[#EF4444] mb-1">Danger Zone</h4>
+                  <p className="text-[#8B8F98] mb-3">Deleting this repository will remove its connected index and query mappings.</p>
+                  <button onClick={() => handleDeleteRepository(selectedRepo.id, selectedRepo.name)} className="rounded-lg bg-[#EF4444] text-white px-3 py-1.5 font-semibold hover:bg-red-600 transition">
                     Delete Repository
                   </button>
                 </div>
@@ -691,7 +828,7 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
             )}
           </div>
         ) : (
-          <div className="lg:col-span-8 rounded-2xl glass-panel p-12 text-center text-gray-500 border border-white/10">
+          <div className="lg:col-span-8 rounded-2xl bg-[#0C0D0F] p-12 text-center text-[#8B8F98] border border-[#24262A]">
             Select a repository from the left panel to inspect its analytics.
           </div>
         )}
@@ -700,17 +837,17 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
       {/* Add Repository Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl glass-panel-deep p-6 border border-white/10 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white">Add New Repository</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white p-1 rounded-lg">
+          <div className="w-full max-w-md rounded-2xl bg-[#0C0D0F] p-6 border border-[#24262A] shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#24262A]">
+              <h3 className="text-sm font-bold text-[#F5F5F5]">Add New Repository</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-[#8B8F98] hover:text-[#F5F5F5] p-1 rounded-lg">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleAddRepository} className="space-y-3.5">
               <div>
-                <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-semibold text-[#8B8F98] uppercase tracking-wider mb-1">
                   Repository Name
                 </label>
                 <input
@@ -719,12 +856,12 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. SmartEMS"
-                  className="w-full rounded-xl border border-white/10 bg-gray-900 px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-indigo-500 transition"
+                  className="w-full rounded-xl border border-[#24262A] bg-[#111214] px-3.5 py-2.5 text-xs text-[#F5F5F5] placeholder-[#8B8F98] outline-none focus:border-[#6366F1] transition"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-semibold text-[#8B8F98] uppercase tracking-wider mb-1">
                   GitHub URL or Owner/Repo
                 </label>
                 <input
@@ -733,22 +870,48 @@ export default function RepositoryManager({ token, onSelectRepoForChat }: Reposi
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
                   placeholder="e.g. https://github.com/owner/repo"
-                  className="w-full rounded-xl border border-white/10 bg-gray-900 px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-indigo-500 transition"
+                  className="w-full rounded-xl border border-[#24262A] bg-[#111214] px-3.5 py-2.5 text-xs text-[#F5F5F5] placeholder-[#8B8F98] outline-none focus:border-[#6366F1] transition"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div>
+                <label className="block text-[11px] font-semibold text-[#8B8F98] uppercase tracking-wider mb-1">
+                  Jira Project Key (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={modalJiraKey}
+                  onChange={(e) => setModalJiraKey(e.target.value.toUpperCase())}
+                  placeholder="e.g. SCRUM, FRONT, BACK"
+                  className="w-full rounded-xl border border-[#24262A] bg-[#111214] px-3.5 py-2 text-xs text-[#F5F5F5] placeholder-[#8B8F98] outline-none focus:border-[#6366F1] transition font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-[#8B8F98] uppercase tracking-wider mb-1">
+                  Slack Webhook URL (Optional)
+                </label>
+                <input
+                  type="password"
+                  value={modalSlackUrl}
+                  onChange={(e) => setModalSlackUrl(e.target.value)}
+                  placeholder="https://hooks.slack.com/services/..."
+                  className="w-full rounded-xl border border-[#24262A] bg-[#111214] px-3.5 py-2 text-xs text-[#F5F5F5] placeholder-[#8B8F98] outline-none focus:border-[#6366F1] transition font-mono"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#24262A]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-gray-300 hover:bg-white/[0.08] transition"
+                  className="rounded-xl border border-[#24262A] bg-[#17181B] px-4 py-2 text-xs font-semibold text-[#8B8F98] hover:text-[#F5F5F5] transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500 disabled:opacity-50 transition shadow-md glow-indigo flex items-center gap-1.5"
+                  className="rounded-xl bg-[#6366F1] px-4 py-2 text-xs font-semibold text-white hover:bg-[#4F46E5] disabled:opacity-50 transition shadow-sm flex items-center gap-1.5"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>{submitting ? "Connecting..." : "Connect Repository"}</span>

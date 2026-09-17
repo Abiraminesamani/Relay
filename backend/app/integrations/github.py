@@ -82,23 +82,30 @@ def get_repository_overview(repo_target: str | None = None) -> GitHubRepositoryO
             default_branch=repo_data.get("default_branch", "main"),
             html_url=repo_data.get("html_url", f"https://github.com/{coordinates.owner}/{coordinates.repo}"),
         ),
-        branches=[branch["name"] for branch in branches_response.json()],
+        branches=[
+            branch.get("name", "")
+            for branch in (branches_response.json() if isinstance(branches_response.json(), list) else [])
+            if isinstance(branch, dict) and "name" in branch
+        ],
         recent_commits=[
             GitHubCommit(
-                sha=commit["sha"],
-                message=commit["commit"]["message"],
-                author=commit["commit"]["author"]["name"],
+                sha=str(commit.get("sha", "")),
+                message=str((commit.get("commit") or {}).get("message", "") if isinstance(commit.get("commit"), dict) else ""),
+                author=str(((commit.get("commit") or {}).get("author") or {}).get("name") or (commit.get("author") or {}).get("login") or "Unknown"),
             )
-            for commit in commits_response.json()
+            for commit in (commits_response.json() if isinstance(commits_response.json(), list) else [])
+            if isinstance(commit, dict) and "sha" in commit
         ],
         pull_requests=[
             GitHubPullRequest(
-                number=pull["number"],
-                title=pull["title"],
-                state=pull["state"],
-                html_url=pull["html_url"],
+                number=int(pull.get("number", 0)),
+                title=str(pull.get("title", "")),
+                state=str(pull.get("state", "open")),
+                html_url=str(pull.get("html_url", "")),
+                author=str((pull.get("user") or {}).get("login") or (pull.get("user") or {}).get("name") or "unknown"),
             )
-            for pull in pulls_response.json()
+            for pull in (pulls_response.json() if isinstance(pulls_response.json(), list) else [])
+            if isinstance(pull, dict) and "number" in pull
         ],
     )
 

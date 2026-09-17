@@ -106,11 +106,11 @@ class GitHubAgent(RelayAgent):
 
     def _synthesize_answer(self, question: str, overview: GitHubRepositoryOverview) -> str:
         commits_text = "\n".join(
-            f"- `{c.sha[:7]}`: {c.message} (by **{c.author}**)" for c in overview.recent_commits
+            f"- `{c.sha[:7]}`: {c.message} (by **{getattr(c, 'author', 'Unknown') or 'Unknown'}**)" for c in overview.recent_commits
         ) or "None found."
 
         pulls_text = "\n".join(
-            f"- **#{p.number}** [{p.state.upper()}]: {p.title} (created by {p.author})"
+            f"- **#{p.number}** [{p.state.upper()}]: {p.title} (created by {getattr(p, 'author', 'unknown') or 'unknown'})"
             for p in overview.pull_requests
         ) or "No pull requests found."
 
@@ -175,9 +175,11 @@ class GitHubAgent(RelayAgent):
         if overview.recent_commits:
             response_lines.append("\n**Recent Commits:**")
             for commit in overview.recent_commits[:5]:
-                response_lines.append(f"- `{commit.sha[:7]}` {commit.message} *(by {commit.author})*")
+                commit_author = getattr(commit, "author", "Unknown") or "Unknown"
+                response_lines.append(f"- `{commit.sha[:7]}` {commit.message} *(by {commit_author})*")
         if overview.pull_requests:
             response_lines.append("\n**Pull Requests:**")
             for pull in overview.pull_requests[:5]:
-                response_lines.append(f"- **#{pull.number}** {pull.title} `({pull.state})`")
+                pull_author = getattr(pull, "author", "unknown") or "unknown"
+                response_lines.append(f"- **#{pull.number}** {pull.title} `({pull.state})` *(by {pull_author})*")
         return "\n".join(response_lines)

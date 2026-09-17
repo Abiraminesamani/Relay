@@ -139,6 +139,7 @@ def get_repository_analytics(
                         title=p.get("title", ""),
                         state=state,
                         html_url=p.get("html_url", ""),
+                        author=str((p.get("user") or {}).get("login") or (p.get("user") or {}).get("name") or "unknown"),
                     )
                 )
 

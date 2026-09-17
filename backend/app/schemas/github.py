@@ -16,7 +16,7 @@ class GitHubRepoMetadata(BaseModel):
 class GitHubCommit(BaseModel):
     sha: str
     message: str
-    author: str
+    author: str = "Unknown"
 
 
 class GitHubPullRequest(BaseModel):
@@ -24,6 +24,7 @@ class GitHubPullRequest(BaseModel):
     title: str
     state: str
     html_url: str
+    author: str = "unknown"
 
 
 class GitHubRepositoryOverview(BaseModel):

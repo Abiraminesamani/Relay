@@ -10,15 +10,10 @@ import {
   Search,
   Sparkles,
   FolderGit2,
-  Star,
-  ArrowUpRight,
   CheckCircle2,
-  AlertTriangle,
   AlertCircle,
-  GitMerge,
   ArrowRight,
   Send,
-  ExternalLink,
   ChevronRight,
   Activity,
 } from "lucide-react";
@@ -132,7 +127,6 @@ export default function HomeOverview({
   onNavigateToTab,
 }: HomeOverviewProps) {
   const [promptInput, setPromptInput] = useState("");
-  const [isStarred, setIsStarred] = useState(true);
   const [analytics, setAnalytics] = useState<RepositoryAnalytics | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
@@ -154,13 +148,6 @@ export default function HomeOverview({
   const cleanRepoCoordinates = analytics?.full_name || (activeRepoUrl
     ? activeRepoUrl.replace(/https?:\/\/github\.com\//, "").replace(/\.git$/, "")
     : "jaisreen/smartems");
-
-  const openPRs = analytics ? analytics.open_prs_count : 12;
-  const issuesCount = analytics ? analytics.open_issues : 7;
-  const ciStatus = analytics ? analytics.ci_status.status : "All Green";
-  const ciSubtext = analytics
-    ? `${analytics.ci_status.passing_count} workflows passing`
-    : "3 workflows passing";
 
   const activities = analytics?.recent_activities?.length
     ? analytics.recent_activities
@@ -212,78 +199,6 @@ export default function HomeOverview({
           <span>Manage Repositories</span>
           <ArrowRight className="w-3.5 h-3.5 text-[#5C6068]" />
         </button>
-      </div>
-
-      {/* Top 4 Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Active Repo Card */}
-        <div className="rounded-xl bg-[#111214] border border-[#24262A] p-4 relative overflow-hidden">
-          <div className="flex items-center justify-between text-xs text-[#8B8F98] mb-2">
-            <span className="font-medium">Active Repository</span>
-            <button
-              onClick={() => setIsStarred(!isStarred)}
-              className="text-[#8B8F98] hover:text-[#F5F5F5] transition"
-              title="Bookmark repository"
-            >
-              <Star className={`w-3.5 h-3.5 ${isStarred ? "fill-[#F59E0B] text-[#F59E0B]" : "text-[#5C6068]"}`} />
-            </button>
-          </div>
-          <div className="flex items-center gap-2.5 mt-1">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17181B] text-[#6366F1] font-bold border border-[#24262A] text-xs">
-              <FolderGit2 className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-[#F5F5F5] truncate">{cleanRepoLabel}</div>
-              <div className="text-[11px] text-[#8B8F98] truncate">{cleanRepoCoordinates}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Open PRs Card */}
-        <div className="rounded-xl bg-[#111214] border border-[#24262A] p-4 relative overflow-hidden">
-          <div className="flex items-center justify-between text-xs text-[#8B8F98] mb-2">
-            <span className="font-medium">Open Pull Requests</span>
-            <GitPullRequest className="w-3.5 h-3.5 text-[#8B8F98]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-bold text-[#F5F5F5]">{openPRs}</span>
-            <span className="text-[11px] font-medium text-[#8B8F98] bg-[#17181B] border border-[#24262A] rounded px-1.5 py-0.5">
-              {openPRs > 0 ? `${openPRs} active` : "up to date"}
-            </span>
-          </div>
-        </div>
-
-        {/* CI/CD Status Card */}
-        <div className="rounded-xl bg-[#111214] border border-[#24262A] p-4 relative overflow-hidden">
-          <div className="flex items-center justify-between text-xs text-[#8B8F98] mb-2">
-            <span className="font-medium">CI/CD Pipeline</span>
-            {ciStatus === "All Green" ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E]" />
-            ) : (
-              <AlertTriangle className="w-3.5 h-3.5 text-[#EF4444]" />
-            )}
-          </div>
-          <div className="mt-1">
-            <div className={`text-base font-semibold ${ciStatus === "All Green" ? "text-[#22C55E]" : "text-[#EF4444]"}`}>
-              {ciStatus}
-            </div>
-            <div className="text-[11px] text-[#8B8F98]">{ciSubtext}</div>
-          </div>
-        </div>
-
-        {/* Issues Card */}
-        <div className="rounded-xl bg-[#111214] border border-[#24262A] p-4 relative overflow-hidden">
-          <div className="flex items-center justify-between text-xs text-[#8B8F98] mb-2">
-            <span className="font-medium">Open Issues</span>
-            <AlertCircle className="w-3.5 h-3.5 text-[#8B8F98]" />
-          </div>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-bold text-[#F5F5F5]">{issuesCount}</span>
-            <span className="text-[11px] font-medium text-[#8B8F98] bg-[#17181B] border border-[#24262A] rounded px-1.5 py-0.5">
-              {issuesCount > 0 ? `${issuesCount} open` : "zero open"}
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* Main 2-Column Grid: Quick Actions & Recent Activity */}
